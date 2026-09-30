@@ -1,0 +1,23 @@
+# Runs ShellCheck on every push and pull request, so the "passes ShellCheck"
+# claim in the README can be verified by anyone from the Actions tab.
+name: ShellCheck
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Run ShellCheck (all severities, including style)
+        run: shellcheck --version && shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh
+      - name: Syntax check
+        # bash -n checks only its first file: loop over each one.
+        run: for f in uhc.sh lib/*.sh lib/checks/*.sh; do bash -n "$f" || exit 1; done

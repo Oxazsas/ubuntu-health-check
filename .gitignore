@@ -1,0 +1,17 @@
+# Generated output: contains details about the audited machine.
+reports/*
+!reports/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# Local configuration (machine-specific).
+uhc.conf
+
+# Private state of root runs (reference lists): describes the machine.
+state/
+
+# Temporary working directories.
+.work.*
+
+# Local instructions for Claude Code (not published).
+CLAUDE.md

@@ -1,0 +1,11 @@
+# Example user crontab entry for ubuntu-health-check.
+# Runs unprivileged on the 1st day of each month at 10:00.
+#
+# Install it from the tool directory (replaces @UHC_DIR@ with the real path
+# and appends the line to your existing crontab):
+#   (crontab -l 2>/dev/null; grep -v '^#' contrib/crontab.example | sed "s|@UHC_DIR@|$PWD|") | crontab -
+#
+# The tool sets its own PATH and finds your desktop session for notifications.
+#
+# m  h  dom mon dow  command
+0 10 1 * * "@UHC_DIR@/uhc.sh" --quiet

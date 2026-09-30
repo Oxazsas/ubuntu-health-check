@@ -1,0 +1,61 @@
+# -----------------------------------------------------------------------------
+# ubuntu-health-check configuration
+#
+# Copy this file to uhc.conf (same directory as uhc.sh) and adjust.
+# uhc.conf is ignored by git: it describes your machine, not the tool.
+#
+# Location: the data directory (by default the tool directory), or --config.
+#
+# Format: KEY=value, one per line. Lines starting with # are comments.
+# The file is parsed, never executed. Each value is validated (numbers,
+# fixed keywords, port/protocol pairs, check IDs, package names): invalid
+# values and unknown keys are reported, and the default is kept.
+# -----------------------------------------------------------------------------
+
+# Number of reports kept in reports/ (older ones are deleted).
+KEEP_REPORTS=12
+
+# When to send a desktop notification: critical | warning | none
+NOTIFY_LEVEL=critical
+
+# Disk usage thresholds (percent) for /, /boot, /boot/efi, /var, /home.
+DISK_WARN=85
+DISK_CRIT=95
+
+# Package lists older than this (days) trigger a warning.
+APT_LISTS_MAX_AGE=7
+
+# Report when more kernel images than this are installed.
+OLD_KERNELS_WARN=3
+
+# Ports that are expected to listen on the network (port/protocol),
+# e.g. an SSH server on a machine you administer remotely.
+# ALLOWED_PORTS="22/tcp 5353/udp"
+ALLOWED_PORTS=""
+
+# Finding IDs to silence (accepted risks). IDs are shown in brackets in the
+# terminal and in backticks in the report.
+# IGNORE_CHECKS="SEC-DISK-ENC SEC-SECUREBOOT"
+IGNORE_CHECKS=""
+
+# Known-good scheduled or startup jobs that match persistence patterns
+# (SVC-PERSISTENCE). Use the 12-character fingerprints shown in the report.
+# Any change to an allowed line gives it a new fingerprint and a new warning.
+# Prefer this to IGNORE_CHECKS="SVC-PERSISTENCE", which hides future jobs too.
+# Allowed jobs stay listed in the report: an entry you did not add is a red flag.
+# Note: JOBS_ALLOW only silences pattern matches. New or changed jobs are
+# reported separately (SVC-PERSISTENCE-NEW) until accepted with --accept-jobs
+# (terminal confirmation of the exact list shown, or explicit fingerprints).
+# JOBS_ALLOW="3ae9b353616b 859cfaab2a48"
+JOBS_ALLOW=""
+
+# Packages to leave out of the obsolete / stuck package findings,
+# e.g. a .deb you install by hand on purpose.
+# IGNORE_PACKAGES="some-vendor-tool"
+IGNORE_PACKAGES=""
+
+# Maximum lines of raw command output kept per finding in the report.
+MAX_EVIDENCE_LINES=40
+
+# Seconds before a single command is abandoned.
+CMD_TIMEOUT=30

@@ -1,0 +1,15 @@
+# systemd *user* timer for ubuntu-health-check: once a month.
+# Installation: see the "Scheduling" section of README.md.
+
+[Unit]
+Description=Monthly Ubuntu Health Check
+
+[Timer]
+# 1st day of each month at 10:00.
+OnCalendar=*-*-01 10:00:00
+# If the machine was off at that time, run at the next session start.
+Persistent=true
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target

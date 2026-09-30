@@ -1,0 +1,21 @@
+# systemd *user* service for ubuntu-health-check.
+#
+# @UHC_DIR@ is replaced by the tool's directory at installation time
+# (see the "Scheduling" section of README.md):
+#   sed "s|@UHC_DIR@|$PWD|g" contrib/uhc.service > ~/.config/systemd/user/uhc.service
+#
+# Runs the audit unprivileged and quietly.
+
+[Unit]
+Description=Ubuntu Health Check (read-only maintenance audit)
+
+[Service]
+Type=oneshot
+ExecStart="@UHC_DIR@/uhc.sh" --quiet
+# Exit codes 1 (warnings) and 2 (critical findings) are audit results,
+# not failures of the service.
+SuccessExitStatus=1 2
+# Low priority: never slow down interactive work.
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
