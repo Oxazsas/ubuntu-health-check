@@ -8,7 +8,9 @@
 # Provides:
 #   - severity levels and counters (CRITICAL / WARNING / INFO / OK)
 #   - terminal output (always on stderr, so stdout stays clean for --print)
-#   - finding / evidence / partial writers used by every check module
+#   - finding / impact / action / caution / evidence / partial writers used by
+#     every check module, and the records of the action plan
+#   - language catalogs (load_lang) and message lookup (t)
 #   - privilege helpers: run a command as the data owner or the audited user
 #     when the audit runs as root (so root never writes into, or reads from,
 #     locations controlled by an unprivileged user)
@@ -30,6 +32,17 @@ CURRENT_SECTION=""
 # Set to 1 when the last finding was silenced by IGNORE_CHECKS, so that the
 # evidence attached to it is silenced too.
 LAST_FINDING_IGNORED=0
+# The last finding, to which impact / action / caution attach: its severity,
+# ID, cleaned title, the plan file it is recorded in (empty for INFO and OK)
+# and how many actions it has so far (numbering restarts for each finding).
+LAST_FINDING_SEV=""
+LAST_FINDING_ID=""
+LAST_FINDING_TITLE=""
+LAST_PLAN_FILE=""
+LAST_ACTION_COUNT=0
+
+# Messages of the current language, by key (filled by load_lang).
+declare -A T=()
 
 # APT options that keep apt-cache / apt list from writing their binary cache
 # (/var/cache/apt/*.bin) when run as root: the cache is built in memory only.
@@ -82,6 +95,100 @@ clean_text() {
 # clean_line TEXT — same, for a single value used in a title (length-limited).
 clean_line() {
     printf '%s' "$1" | tr '\n\t' '  ' | clean_text | cut -c1-200
+}
+
+# clean_para TEXT — same as clean_line, without the length limit: for the
+# explanations and proposed commands of a finding (a command cut short could
+# do something else than intended).
+clean_para() {
+    printf '%s' "$1" | tr '\n\t' '  ' | clean_text
+}
+
+# safe_name VALUE FALLBACK — VALUE if it is a plain name (package, snap, unit,
+# user...), FALLBACK otherwise (e.g. "<package>"). Use it before inserting a
+# name that comes from the system into a proposed command: the reader may
+# copy the command into a shell, where quotes, spaces or $(...) in a name
+# chosen by someone else would change what it does.
+safe_name() {
+    if [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9+._@:-]*$ ]]; then
+        printf '%s' "$1"
+    else
+        printf '%s' "$2"
+    fi
+}
+
+# md_code TEXT — TEXT as Markdown inline code. The fence is made longer than
+# any run of backticks inside TEXT, so the text cannot close it early.
+md_code() {
+    local fence='`'
+    while [[ "$1" == *"$fence"* ]]; do fence+='`'; done
+    if (( ${#fence} > 1 )); then
+        printf '%s %s %s' "$fence" "$1" "$fence"
+    else
+        printf '`%s`' "$1"
+    fi
+}
+
+# ---- languages -------------------------------------------------------------------
+# Messages live in lib/lang/<code>/*.lang, one 'key=text' per line (the key
+# stops at the first '='; empty lines and lines starting with # are ignored).
+# Like uhc.conf, these files are read as text, never sourced or evaluated.
+# Texts use named variables, {name}, because word order differs between
+# languages.
+
+# load_lang CODE — load the English catalog, then lay CODE over it, so that a
+# key missing from CODE falls back to English. A language without a folder
+# falls back to English silently. CODE is a validated two-letter code, so it
+# can only name a folder directly under lib/lang/.
+load_lang() {
+    local code="$1" dir file line key
+    T=()
+    for dir in "${UHC_DIR}/lib/lang/en" "${UHC_DIR}/lib/lang/${code}"; do
+        [[ -d "$dir" ]] || continue
+        for file in "$dir"/*.lang; do
+            [[ -f "$file" ]] || continue
+            # Builtins only: one 'read' per line, no process per line.
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                line="${line%$'\r'}"
+                [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
+                key="${line%%=*}"
+                # Keys are plain identifiers (they become array subscripts).
+                [[ "$key" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || continue
+                T[$key]="${line#*=}"
+            done <"$file"
+        done
+        [[ "$code" == en ]] && break
+    done
+}
+
+# t KEY [name=value ...] — print the message KEY with each {name} replaced by
+# its value; an unknown key prints the key itself, so a missing message is
+# visible instead of silently empty.
+# The template is scanned once, left to right, and values are inserted as
+# they are: a value that itself contains "{other}" is never expanded again.
+# Every expansion is quoted, so '&' (special in Bash 5.2+ replacements), '/',
+# '\' and glob characters in a value stay literal.
+t() {
+    local key="$1" msg out="" name kv
+    local -A vars=()
+    shift
+    msg="$key"
+    [[ -n "$key" && -n "${T[$key]+x}" ]] && msg="${T[$key]}"
+    for kv in "$@"; do
+        [[ "$kv" == ?*=* ]] && vars["${kv%%=*}"]="${kv#*=}"
+    done
+    while [[ "$msg" == *"{"* ]]; do
+        out+="${msg%%"{"*}"
+        msg="${msg#*"{"}"
+        name="${msg%%"}"*}"
+        if [[ "$msg" == *"}"* && -n "$name" && -n "${vars[$name]+x}" ]]; then
+            out+="${vars[$name]}"
+            msg="${msg#*"}"}"
+        else
+            out+="{"
+        fi
+    done
+    printf '%s' "${out}${msg}"
 }
 
 # mask_name CATEGORY NAME — with --sanitize, replace a user-chosen name that may
@@ -170,7 +277,9 @@ section() {
 #   ID          stable identifier (e.g. KRN-META), usable in IGNORE_CHECKS
 #   TITLE       one-line statement of what was found (cleaned: it may contain
 #               names coming from the system)
-#   EXPLANATION why it matters / what to do (written by the tool, trusted)
+#   EXPLANATION why it matters / what to do (written by the tool, trusted).
+#               Modules written for 2.7.0 and later leave it out and call
+#               impact / action / caution after the finding instead.
 finding() {
     local sev="$1" id="$2" title explanation="${4:-}"
     local icon color
@@ -182,6 +291,10 @@ finding() {
         return 0
     fi
     LAST_FINDING_IGNORED=0
+    LAST_FINDING_SEV="$sev"
+    LAST_FINDING_ID="$id"
+    LAST_FINDING_TITLE="$title"
+    LAST_ACTION_COUNT=0
 
     case "$sev" in
         CRITICAL) icon="🔴"; color="$C_RED"; COUNT_CRITICAL=$((COUNT_CRITICAL + 1)) ;;
@@ -202,7 +315,93 @@ finding() {
             "$icon" "$sev" "$id" "$CURRENT_SECTION" "${title//|/\\|}" >>"$SUMMARY_FILE"
     fi
 
+    # ... and recorded for the action plan. A finding written in the old style
+    # (single EXPLANATION) gets it as its consequence, so that the plan stays
+    # complete while modules are being migrated.
+    LAST_PLAN_FILE=""
+    case "$sev" in
+        CRITICAL) LAST_PLAN_FILE="${PLAN_CRIT_FILE:-}" ;;
+        WARNING)  LAST_PLAN_FILE="${PLAN_WARN_FILE:-}" ;;
+    esac
+    plan_record F "$id" "$title"
+    [[ -n "$explanation" ]] && plan_record I "$explanation"
+
     say "  ${color}$(printf '%-8s' "$sev")${C_RST} $title ${C_DIM}[$id]${C_RST}"
+}
+
+# plan_record TYPE FIELD... — append one record to the plan file of the last
+# finding (none for INFO and OK): TYPE then the fields, tab-separated, on one
+# line. TYPE is F (ID, title), I (consequence), A (command, description) or
+# C (precaution). Callers pass text that is already cleaned; tabs and newlines
+# are flattened here so that they cannot break the record format.
+plan_record() {
+    local f line="$1"
+    [[ -n "$LAST_PLAN_FILE" ]] || return 0
+    shift
+    for f in "$@"; do
+        f="${f//$'\t'/ }"
+        line+=$'\t'"${f//$'\n'/ }"
+    done
+    printf '%s\n' "$line" >>"$LAST_PLAN_FILE"
+}
+
+# Markdown blocks of a finding, shared by the report body and the action plan.
+# Texts name placeholders such as <package>: outside code, '<' is escaped so
+# that a Markdown renderer does not swallow them as HTML tags.
+md_impact()  { printf '\n**%s.** %s\n' "$(t ui.impact)" "${1//</\\<}"; }
+md_caution() { printf '\n**%s.** %s\n' "$(t ui.caution)" "${1//</\\<}"; }
+md_actions_heading() {
+    printf '\n**%s** (%s)%s\n\n' "$(t ui.actions)" "$(t ui.actions_note)" "$(t ui.colon)"
+}
+# md_action N CMD DESCRIPTION — one numbered action; an empty CMD is advice.
+md_action() {
+    if [[ -n "$2" ]]; then
+        printf '%d. %s — %s\n' "$1" "$(md_code "$2")" "${3//</\\<}"
+    else
+        printf '%d. %s\n' "$1" "${3//</\\<}"
+    fi
+}
+
+# impact KEY [name=value ...] — what the last finding means for the user, in
+# plain words: what they risk if they do nothing.
+# impact, action and caution write nothing when the last finding was silenced
+# by IGNORE_CHECKS (like evidence). Their final text is cleaned: the values
+# inserted in a message may come from the system.
+impact() {
+    local text
+    [[ "$LAST_FINDING_IGNORED" == 1 ]] && return 0
+    text="$(clean_para "$(t "$@")")"
+    md_impact "$text" >>"$BODY_FILE"
+    plan_record I "$text"
+}
+
+# action CMD KEY [name=value ...] — something the user can do about the last
+# finding: CMD is a command for them to run themselves (never run by the
+# tool), KEY describes what it does and whether it can be undone. An empty
+# CMD makes the action a piece of advice without a command. Insert names that
+# come from the system into CMD only through safe_name.
+action() {
+    local cmd desc
+    [[ "$LAST_FINDING_IGNORED" == 1 ]] && return 0
+    cmd="$(clean_para "$1")"
+    shift
+    desc="$(clean_para "$(t "$@")")"
+    LAST_ACTION_COUNT=$((LAST_ACTION_COUNT + 1))
+    {
+        (( LAST_ACTION_COUNT == 1 )) && md_actions_heading
+        md_action "$LAST_ACTION_COUNT" "$cmd" "$desc"
+    } >>"$BODY_FILE"
+    plan_record A "$cmd" "$desc"
+}
+
+# caution KEY [name=value ...] — what to know before acting: whether it can be
+# undone, what to simulate or back up first, whether a reboot follows.
+caution() {
+    local text
+    [[ "$LAST_FINDING_IGNORED" == 1 ]] && return 0
+    text="$(clean_para "$(t "$@")")"
+    md_caution "$text" >>"$BODY_FILE"
+    plan_record C "$text"
 }
 
 # evidence LABEL CONTENT — attach raw command output to the last finding.
@@ -214,10 +413,10 @@ evidence() {
     content="$(printf '%s\n' "$2" | clean_text)"
     total=$(printf '%s\n' "$content" | wc -l)
     {
-        printf '\n%s (raw system data):\n\n```text\n' "$label"
+        printf '\n%s\n\n```text\n' "$(t ui.evidence_raw label="$label")"
         printf '%s\n' "$content" | head -n "$max"
         if (( total > max )); then
-            printf '... (%d more lines truncated)\n' "$((total - max))"
+            printf '%s\n' "$(t ui.evidence_more n="$((total - max))")"
         fi
         printf '```\n'
     } >>"$BODY_FILE"
@@ -229,7 +428,7 @@ evidence() {
 partial() {
     local id="$1" what="$2"
     COUNT_PARTIAL=$((COUNT_PARTIAL + 1))
-    printf -- '- `%s` (%s): %s\n' "$id" "$CURRENT_SECTION" "$what" >>"$PARTIAL_FILE"
-    printf '\n> ⚪ Skipped: %s `%s`\n' "$what" "$id" >>"$BODY_FILE"
+    printf -- '- `%s` (%s)%s %s\n' "$id" "$CURRENT_SECTION" "$(t ui.colon)" "$what" >>"$PARTIAL_FILE"
+    printf '\n> ⚪ %s%s %s `%s`\n' "$(t ui.skipped)" "$(t ui.colon)" "$what" "$id" >>"$BODY_FILE"
     say "  ${C_DIM}SKIPPED  $what [$id]${C_RST}"
 }

@@ -59,3 +59,10 @@ MAX_EVIDENCE_LINES=40
 
 # Seconds before a single command is abandoned.
 CMD_TIMEOUT=30
+
+# Language of the report and of the terminal output: auto (the computer's
+# language, English if it is not available) or a two-letter code such as en
+# or fr. A language without a folder in lib/lang/ falls back to English.
+# The --lang option takes precedence.
+# REPORT_LANG=fr
+REPORT_LANG=auto

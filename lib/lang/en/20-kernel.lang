@@ -1,0 +1,63 @@
+# Messages of lib/checks/20-kernel.sh. Format and rules: see common.lang.
+
+section.20-kernel=Kernel
+
+# ---- KRN-NONE ----
+KRN-NONE.info.title=No distribution kernel packages installed
+KRN-NONE.info.impact=This is normal inside a container, in WSL, or on a system whose kernel is provided by someone else (a hosting provider, for example). The kernel checks are skipped: kernel updates are handled outside this system.
+
+# ---- KRN-META ----
+# A kernel metapackage is an almost empty package whose only job is to pull in
+# the newest kernel. The texts explain this in plain words.
+KRN-META.none.title=No kernel metapackage installed: new kernels will never be installed
+KRN-META.none.impact=Ubuntu installs each new kernel through a small package, called a metapackage, whose only job is to pull in the newest kernel. Without it, the kernel (the core of the system) stays at its current version and no longer receives security fixes, even though other updates keep arriving.
+KRN-META.none.act.1=Shows whether linux-generic, the standard kernel metapackage, is offered by your repositories. Read-only.
+KRN-META.none.act.2=Shows what installing linux-generic would add or remove. Simulation only: nothing is installed.
+KRN-META.none.act.3=Installs linux-generic, which brings the newest kernel and keeps it up to date. Can be undone by removing it, but keep it: it is what brings kernel fixes.
+KRN-META.none.caution=If the simulation removes packages, stop and ask for help. If this computer used a kernel whose name contains "hwe" (newer hardware support), install the matching metapackage instead, for example linux-generic-hwe-24.04 on Ubuntu 24.04. A new kernel only takes effect after a reboot.
+KRN-META.dead.title=Kernel metapackage no longer available in any repository: kernel updates have stopped
+KRN-META.dead.impact=The small package that pulls in new kernels (here {packages}) belongs to a previous Ubuntu release, so no new kernel arrives any more. The kernel no longer receives security fixes. Other packages keep updating, which hides the problem.
+KRN-META.dead.act.1=Shows whether linux-generic, the standard kernel metapackage of your current release, is offered by your repositories. Read-only.
+KRN-META.dead.act.2=Shows what installing linux-generic would add or remove. Simulation only: nothing is installed.
+KRN-META.dead.act.3=Installs linux-generic, which brings the newest kernel of your release and keeps it up to date. Can be undone by removing it, but keep it: it is what brings kernel fixes.
+KRN-META.dead.act.4=Restart the computer, then check that everything works normally with the new kernel (display, network, sound).
+KRN-META.dead.act.5=Shows what removing the obsolete metapackage would remove. Simulation only. If the list is right, run the same command without --simulate.
+KRN-META.dead.caution=Remove the obsolete metapackage only after the computer has restarted correctly on the new kernel. If a simulation removes something else than old kernel packages, in particular ubuntu-desktop or ubuntu-desktop-minimal (the packages that keep the desktop installed), stop. If the old metapackage name contains "hwe", install the matching one of your release instead of linux-generic (for example linux-generic-hwe-24.04).
+KRN-META.ev.1=Obsolete kernel metapackage(s)
+KRN-META.ok.title=Kernel metapackage available: {packages}
+
+# ---- KRN-META-LEFTOVER ----
+KRN-META-LEFTOVER.info.title=Obsolete kernel metapackage still installed: {packages}
+KRN-META-LEFTOVER.info.impact=This leftover of a previous Ubuntu release no longer brings anything. It keeps an old kernel installed, which takes disk space. Nothing urgent: your current kernel metapackage is fine.
+KRN-META-LEFTOVER.info.act.1=Shows what removing the obsolete metapackage would remove. Simulation only.
+KRN-META-LEFTOVER.info.act.2=Removes the obsolete metapackage. Can be undone only while the package can still be downloaded: it may no longer be offered.
+KRN-META-LEFTOVER.info.act.3=Lists the packages no longer needed afterwards (usually the old kernel) that apt would remove. Simulation only. If the list is right, run it again without --simulate.
+KRN-META-LEFTOVER.info.caution=Do this only once your current kernel has been working well for a while. Read every simulation, and stop if it removes ubuntu-desktop, ubuntu-desktop-minimal or the kernel you are running.
+
+# ---- KRN-RUNNING ----
+KRN-RUNNING.ok.title=Running the newest installed kernel ({running})
+KRN-RUNNING.old.title=Running kernel {running} is not the newest installed ({latest})
+KRN-RUNNING.old.impact=A newer kernel is installed but not in use. Its fixes, often security fixes, only take effect after a restart.
+KRN-RUNNING.old.act.1=Save your work, then restart the computer from the system menu when it suits you.
+KRN-RUNNING.old.act.2=After the restart, shows the version of the kernel in use: it should be the newest one. Read-only.
+KRN-RUNNING.old.caution=If the computer does not start correctly with the new kernel, choose the previous one in the "Advanced options for Ubuntu" menu at start-up (hold Shift or press Esc to show it), then run the audit again.
+KRN-RUNNING.foreign.title=Running kernel {running} does not come from an installed package
+KRN-RUNNING.foreign.impact=The kernel in use was built by hand, or is provided by a virtual machine host or by someone else. Ubuntu kernel updates installed on this system may not reach it.
+KRN-RUNNING.foreign.act.1=If you did not set up this kernel yourself, ask whoever manages this machine (hosting provider, administrator) how it receives security fixes.
+
+# ---- KRN-PENDING ----
+KRN-PENDING.warn.title=A newer kernel ({version}) is available but not installed
+KRN-PENDING.warn.impact=Your repositories offer a newer kernel through {package}, but it has not been installed. Until it is, the kernel misses the fixes it brings.
+KRN-PENDING.warn.act.1=Lists the updates waiting to be installed. Read-only.
+KRN-PENDING.warn.act.2=Shows the installed and the available version of the kernel metapackage. Read-only.
+KRN-PENDING.warn.act.3=Installs the pending updates, including the new kernel. apt shows the list and asks for confirmation first; it never removes packages with this command.
+KRN-PENDING.warn.caution=If the new kernel appears among the updates deferred by phased updates (see the APT section), this is normal: it will be installed in a few days. A new kernel only takes effect after a restart.
+
+# ---- KRN-OLD ----
+KRN-OLD.info.title={n} kernel images installed
+KRN-OLD.info.impact=Old kernels take space in /boot and /lib/modules. When /boot is full, kernel updates fail. Extra kernels are often leftovers of an obsolete kernel metapackage.
+KRN-OLD.info.act.1=Shows how full /boot is. Read-only.
+KRN-OLD.info.act.2=Lists the packages no longer needed (often old kernels) that apt would remove. It normally keeps the running and the previous kernel. Simulation only: nothing is removed.
+KRN-OLD.info.act.3=Removes those packages. A removed kernel can be installed again as long as Ubuntu still offers it.
+KRN-OLD.info.caution=Read the list shown by the simulation first, and stop if it contains the kernel you are running or ubuntu-desktop. If old kernels stay after this, check the kernel metapackage findings above.
+KRN-OLD.ev.1=Installed kernel images

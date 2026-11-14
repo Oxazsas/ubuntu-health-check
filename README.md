@@ -115,11 +115,15 @@ No installation step, no dependency. The whole tool lives in this directory.
 ./uhc.sh --sanitize   # mask identifying data (see "Using the report with an AI")
 ./uhc.sh --quiet      # no terminal output (for cron / timers)
 ./uhc.sh --print      # also print the report on stdout
+./uhc.sh --brief      # one line per finding, without the action plan
+./uhc.sh --lang fr    # report and terminal output in French
 ```
 
 | Option                                          | Effect                                                                                                                                                                                       |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-q`, `--quiet`                                 | No terminal output                                                                                                                                                                           |
+| `--brief`                                       | Terminal: one line per finding, without the action plan (the plan stays in the report)                                                                                                       |
+| `--lang CODE`                                   | Language of the report and terminal output (`en`, `fr`): see [Languages](#languages)                                                                                                         |
 | `-s`, `--sanitize`                              | Mask identifying data in the saved report                                                                                                                                                    |
 | `-p`, `--print`                                 | Print the report to stdout after the run                                                                                                                                                     |
 | `-d`, `--data-dir DIR`                          | Where `reports/` and `logs/` are written (default: tool directory)                                                                                                                           |
@@ -254,16 +258,32 @@ other aliases. The next audit reports the new lines as
 
 Each run produces:
 
-1. **A terminal summary**, one line per finding.
+1. **A terminal summary**: one line per finding, then an **action plan** for
+   the critical and warning findings (`--brief` leaves the plan out).
 2. **A Markdown report** in `reports/uhc-YYYYMMDD-HHMMSS-<host>.md`:
-   machine context, summary table, one section per domain with every finding,
-   its explanation and the raw evidence (command output), the list of
+   machine context, summary table, the action plan, one section per domain
+   with every finding and the raw evidence (command output), the list of
    partial checks, and closing notes for an AI assistant.
 3. **A log line** in `logs/uhc.log` (date, counts per severity, report path).
 4. **A desktop notification** when there is at least one CRITICAL finding
    (configurable).
 
 Only the last 12 reports are kept (configurable). The log keeps 1000 lines.
+
+### Explanations and proposed actions
+
+The tool diagnoses, explains and proposes; **it never runs a fix**. Each
+finding that calls for a decision comes with:
+
+- **What it means**: what you risk if you do nothing, in plain words.
+- **What you can do**: commands for you to run yourself, each with what it
+  does and whether it can be undone. Read-only commands and simulations come
+  first.
+- **Before you act**: what to check, simulate or back up first.
+
+The action plan gathers these for the critical findings, then the warnings.
+Commands that apply to several items use a placeholder such as `<package>`:
+the items themselves are listed in the evidence of the finding.
 
 ### Severity levels
 
@@ -513,7 +533,7 @@ cp uhc.conf.example uhc.conf
 `uhc.conf` is ignored by git and read from the data directory (also for sudo
 runs, so it is writable by your account: see the note on `JOBS_ALLOW`). The available
 keys (thresholds, notification level, expected ports, silenced checks, ignored
-packages, report retention) are documented in
+packages, report retention, language) are documented in
 [`uhc.conf.example`](uhc.conf.example). Invalid values are rejected and the
 default is kept.
 
@@ -570,8 +590,9 @@ notifications also work from cron when you are logged in.
 ## Using the report with an AI assistant
 
 The report is written to be pasted into an AI assistant as the starting point
-of a maintenance session: every finding has an explanation, raw evidence and
-a stable ID, and the report ends with guidance for the assistant (simulate
+of a maintenance session: every finding has an explanation, proposed actions,
+raw evidence and a stable ID, and the report ends with guidance for the
+assistant (treat the proposed actions as proposals to explain, simulate
 before removing, stop if core desktop metapackages would be removed, explain
 irreversible commands, back up data first).
 
@@ -634,17 +655,56 @@ instruction. Read what the assistant proposes before running it.
 - **Sanitising is pattern-based** and keeps diagnostic names on purpose.
 - **Some findings need judgment:** _INFO_ means "review", not "fix".
 
+## Languages
+
+The report and the terminal output are written in the computer's language
+when a translation exists (English and French today), in English otherwise.
+The language is chosen, in this order, by:
+
+1. the `--lang CODE` option (`./uhc.sh --lang fr`);
+2. `REPORT_LANG` in `uhc.conf` (`auto` by default);
+3. the computer's locale (`LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`; from
+   cron or a timer, which start without a locale, the system default in
+   `/etc/default/locale`). `UHC_LANG=fr ./uhc.sh` also forces it;
+4. English.
+
+A language without a folder in `lib/lang/` falls back to English, and so does
+any message not translated yet. Finding IDs, severity words (`CRITICAL`,
+`WARNING`...), proposed commands, `--help`, error messages and the log line
+stay in English.
+
+To add a language, copy `lib/lang/en/` to `lib/lang/<code>/` (two lowercase
+letters) and translate the text after each `=`, keeping the keys and the
+`{variables}` unchanged. Catalogs are plain text, read and never executed.
+Check them with `contrib/check-lang.sh`.
+
 ## Adding a check
 
-Checks live in `lib/checks/NN-name.sh` and are loaded in numeric order. A
-module calls:
+Checks live in `lib/checks/NN-name.sh` and are loaded in numeric order. Their
+texts live in `lib/lang/<code>/NN-name.lang`, one `key=text` per line, and are
+looked up with `t KEY [name=value ...]`. A module calls:
 
 ```bash
-section "My domain"
-finding WARNING MY-ID "One-line statement" "Why it matters and what to do."
-evidence "Label" "$(some read-only command)"
-partial MY-ID "what could not be checked and why"
+section "$(t section.NN-name)"
+finding WARNING MY-ID "$(t MY-ID.warn.title count="$n")"
+impact  MY-ID.warn.impact                     # what the user risks, in plain words
+action  "sudo apt autoremove --simulate" MY-ID.warn.act.1   # command + what it does
+action  "" MY-ID.warn.act.2                   # advice without a command
+caution MY-ID.warn.caution                    # reversible? simulate first? reboot?
+evidence "$(t MY-ID.ev.1)" "$(some read-only command)"
+partial MY-ID "$(t MY-ID.partial.1)"
 ```
+
+Keys follow `<ID>.<variant>.title`, `.impact`, `.caution`, `.act.<n>`,
+`<ID>.partial.<n>` and `<ID>.ev.<n>`. Every CRITICAL and WARNING finding gets
+an `impact` and at least one `action`; they also feed the action plan shown
+after the summary and at the end of the terminal output. An INFO finding gets
+them when a decision is expected; an OK finding only has its title. Proposed
+commands are never run by the tool: prefer a simulation or a read-only
+command first, and say in the description whether the action can be undone.
+Insert a name that comes from the system into a command only through
+`safe_name VALUE '<package>'`. The old form, `finding SEV ID TITLE
+"EXPLANATION"`, still works for modules not migrated yet.
 
 Helpers from `lib/common.sh`: `have CMD`, `run CMD ARGS` (with timeout),
 `pkg_installed NAME`, `pkg_in_repo NAME`. Keep every command read-only, never
@@ -652,7 +712,8 @@ print secrets, pass untrusted names through `evidence` (or `clean_line` for
 titles), run `apt`/`apt-cache`/`apt-mark` with `"${APT_RO[@]}"`, read files in
 the user's home through `as_target`, never report OK when the underlying
 command failed (use `partial`), and run
-`shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh` before submitting.
+`shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh`
+and `contrib/check-lang.sh` before submitting.
 
 ## License
 

@@ -1,0 +1,89 @@
+# Messages of lib/checks/60-network.sh. Format and rules: see common.lang.
+
+section.60-network=Network exposure
+
+# ---- NET-FIREWALL: how the firewall state was found (inserted in other texts) ----
+NET-FIREWALL.detail.1=ufw active
+NET-FIREWALL.detail.2=ufw inactive
+NET-FIREWALL.detail.3=ufw enabled in /etc/ufw/ufw.conf, rules not readable without sudo
+NET-FIREWALL.detail.4=ufw disabled in /etc/ufw/ufw.conf
+NET-FIREWALL.detail.5=firewalld running
+
+# ---- NET-LISTEN ----
+NET-LISTEN.crit.title=TCP services reachable from the network and NO firewall active
+NET-LISTEN.crit.impact=The programs listed below wait for connections from other machines (a "listening port"), and no firewall filters them. Anyone on your local network can reach them, and so can the Internet over IPv6 if your router does not filter it. A flaw or a weak password in one of them is enough to get in.
+NET-LISTEN.warn.title=TCP services listening outside localhost
+NET-LISTEN.warn.impact_fw=The programs listed below wait for connections from other machines (a "listening port"). The firewall is on ({detail}), but it lets through whatever its rules allow: those ports are reachable from your network.
+NET-LISTEN.warn.impact_nofw=The programs listed below wait for connections from other machines (a "listening port"). The audit could not tell whether a firewall filters them: assume they are reachable from your network.
+NET-LISTEN.exposed.act.1=Lists the listening ports with the program behind each one. Read-only.
+NET-LISTEN.exposed.act.2=Stops a service you do not need and keeps it from starting again at boot (replace <service> with its name, for example apache2). Can be undone: the same command with enable instead of disable.
+NET-LISTEN.exposed.act.3=For a program you only use on this computer (a development server, a database), set it to listen on 127.0.0.1 in its settings: it is then reachable from this computer only.
+NET-LISTEN.crit.act.4=Turn on a firewall: the steps are under NET-FIREWALL, further down in this section.
+NET-LISTEN.warn.act.4=For a port that must stay open (for example 22/tcp for remote SSH access), add it to ALLOWED_PORTS in uhc.conf: it then appears as expected and no longer in this warning.
+NET-LISTEN.exposed.caution=If you manage this computer remotely, do not stop the SSH service (port 22) or the one you are connected through: you would lose access to the machine.
+NET-LISTEN.ev.1=Listening TCP sockets (protocol, address:port, process)
+NET-LISTEN.ok.title=No TCP service listening outside localhost
+NET-LISTEN.partial.1=listening ports not checked (ss not available)
+NET-LISTEN.partial.2=listening ports not checked (ss failed)
+NET-LISTEN-PROC.partial.1=process names of listening sockets need sudo
+
+# ---- NET-LISTEN-EXPECTED ----
+NET-LISTEN-EXPECTED.ok.title=Listening ports declared as expected (ALLOWED_PORTS)
+NET-LISTEN-EXPECTED.ev.1=Expected
+
+# ---- NET-UDP ----
+NET-UDP.info.title=UDP ports open outside localhost
+NET-UDP.info.impact=Some programs receive UDP traffic from other machines: DNS, VPN, games, media servers... They are reachable from your network. This is fine if you use them.
+NET-UDP.info.act.1=Lists the open UDP ports with the program behind each one. Read-only.
+NET-UDP.info.act.2=Stop the programs you do not recognise or no longer use. For a port you expect (for example 51820/udp for a WireGuard VPN), add it to ALLOWED_PORTS in uhc.conf.
+NET-UDP.ev.1=UDP sockets
+
+# ---- NET-UDP-DISCOVERY ----
+NET-UDP-DISCOVERY.info.title=Local discovery / DHCP sockets open (mDNS, DHCP, SSDP)
+NET-UDP-DISCOVERY.info.impact=Normal on a desktop. Avahi (mDNS) finds printers and other machines by their '.local' names, and NetworkManager uses DHCP to get an address. Note that ufw lets mDNS in by default: other machines on the local network can see this computer.
+NET-UDP-DISCOVERY.info.act.1=Only if you never use '.local' names or network discovery: stops Avahi and keeps it from starting at boot. Can be undone: the same command with enable instead of disable.
+NET-UDP-DISCOVERY.info.caution=Without Avahi, network printers and shared folders may no longer be found automatically.
+NET-UDP-DISCOVERY.ev.1=Sockets
+
+# ---- NET-FIREWALL ----
+NET-FIREWALL.ok.title=Firewall enabled ({detail})
+NET-FIREWALL.warn.title=No active firewall
+NET-FIREWALL.warn.impact=A firewall decides which connections from other machines are let in. Nothing is exposed right now, but any service started later (by you or by a program you install) will be reachable from the network at once.
+NET-FIREWALL.crit.title=No active firewall while services are exposed (see above)
+NET-FIREWALL.crit.impact=A firewall decides which connections from other machines are let in. Without one, the services listed under NET-LISTEN are open to your whole network.
+NET-FIREWALL.off.act.1=Shows the state of the ufw firewall and its rules. Read-only.
+NET-FIREWALL.off.act.2=Sets the firewall to refuse incoming connections that no rule allows. Takes effect once the firewall is on. Can be undone with 'sudo ufw default allow incoming'.
+NET-FIREWALL.off.act.3=Lets this computer open connections to the outside (web, updates) freely. This is the usual setting.
+NET-FIREWALL.off.act.4=Only if you connect to this computer remotely over SSH: allows SSH connections. Run it before turning the firewall on.
+NET-FIREWALL.off.act.5=Turns the firewall on, now and at every boot. Can be undone with 'sudo ufw disable'.
+NET-FIREWALL.off.caution=On a computer you manage remotely over SSH, turning the firewall on without allowing SSH first cuts your access: run 'sudo ufw allow OpenSSH' before 'sudo ufw enable' (ufw asks for confirmation when it may cut an SSH session). Also allow any other port other machines must reach (for example 'sudo ufw allow 8080/tcp').
+NET-FIREWALL.partial.1=firewall state unknown (ufw/firewalld not found, or custom nftables rules; run with sudo)
+
+# ---- NET-FW-POLICY ----
+NET-FW-POLICY.warn.title=Firewall default policy allows incoming connections
+NET-FW-POLICY.warn.impact=The firewall is on, but it lets in every connection that no rule blocks. In practice it protects almost nothing.
+NET-FW-POLICY.warn.act.1=Shows the current policy and rules. Read-only.
+NET-FW-POLICY.warn.act.2=Only if you connect to this computer remotely over SSH: allows SSH connections. Run it before the next command.
+NET-FW-POLICY.warn.act.3=Refuses incoming connections that no rule allows. Can be undone with 'sudo ufw default allow incoming'.
+NET-FW-POLICY.warn.caution=Before refusing incoming connections, allow what other machines must still reach (SSH with 'sudo ufw allow OpenSSH', other ports with 'sudo ufw allow <port>/tcp'). Otherwise, on a computer managed remotely, you lose access.
+
+# ---- NET-FW-RULES ----
+NET-FW-RULES.info.title={n} firewall rule(s) defined
+NET-FW-RULES.info.impact=For information. Each rule lets in (or blocks) connections on a port; the list is below.
+NET-FW-RULES.ev.1=ufw rules
+NET-FW-RULES.partial.1=firewall rules not readable without sudo
+
+# ---- NET-FW-STALE ----
+NET-FW-STALE.info.title=Firewall allows port(s) on which nothing is listening
+NET-FW-STALE.info.impact=These rules are probably leftovers of a removed program. If another program starts on one of these ports later, it will be reachable from the network at once, without you deciding it.
+NET-FW-STALE.info.act.1=Lists the firewall rules with a number. Read-only.
+NET-FW-STALE.info.act.2=Deletes a rule that allows a port (replace <rule> with the port as shown below, for example 8080/tcp). Can be undone with 'sudo ufw allow <rule>'.
+NET-FW-STALE.info.caution=A program may simply be stopped right now (an occasional server, a game). Delete only the rules of programs you no longer use.
+NET-FW-STALE.ev.1=Ports allowed but unused
+
+# ---- NET-IPV6 ----
+NET-IPV6.info.title=Public IPv6 address(es) assigned
+NET-IPV6.info.impact=With IPv6, your router does not hide this computer behind a shared address (no NAT): services listening on [::] or * can be reachable from the Internet, unless the router's IPv6 firewall or this computer's firewall blocks them.
+NET-IPV6.info.act.1=Keep the firewall of this computer turned on.
+NET-IPV6.info.act.2=In your router's settings, check that its IPv6 firewall blocks incoming connections (usually the default setting).
+NET-IPV6.ev.1=Global IPv6 addresses

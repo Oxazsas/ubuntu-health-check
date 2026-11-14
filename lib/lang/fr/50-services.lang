@@ -1,0 +1,34 @@
+# Messages de lib/checks/50-services.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.50-services=Services
+
+# ---- SVC-ALL ----
+SVC-ALL.partial.1=systemd n'est pas le système de démarrage en service (conteneur ?), contrôles des services non effectués
+
+# ---- SVC-FAILED ----
+SVC-FAILED.warn.title={n} unité(s) système en échec
+SVC-FAILED.warn.impact=systemd est le programme qui démarre et surveille les services du système ; chaque service ou tâche qu'il gère s'appelle une unité. Une unité en échec n'a pas démarré ou s'est arrêtée sur une erreur : ce qu'elle assure (impression, partage réseau, sauvegarde...) peut ne pas fonctionner. Il peut aussi s'agir d'un reste sans conséquence d'un logiciel que vous n'utilisez plus.
+SVC-FAILED.warn.act.1=Indique ce qu'est l'unité, son état et ses derniers messages. Lecture seule.
+SVC-FAILED.warn.act.2=Affiche tous les messages de l'unité depuis le démarrage de l'ordinateur, pour trouver la cause de l'erreur. Lecture seule.
+SVC-FAILED.warn.act.3=Une fois la cause corrigée, l'unité sort de cette liste dès qu'elle démarre correctement (au plus tard au prochain redémarrage de l'ordinateur).
+SVC-FAILED.warn.caution=Ne désactivez pas et ne supprimez pas une unité que vous ne connaissez pas avant de savoir à quoi elle sert : cherchez d'abord son nom. Certaines unités sont nécessaires au démarrage de l'ordinateur.
+SVC-FAILED.ev.1=Unités en échec
+SVC-FAILED.ok.title=Aucune unité système en échec
+SVC-FAILED.partial.1=unités en échec non listées (échec de systemctl)
+
+# ---- SVC-USER-FAILED ----
+SVC-USER-FAILED.warn.title={n} unité(s) utilisateur en échec
+SVC-USER-FAILED.warn.impact=Ces unités sont des services ou des tâches que systemd lance pour votre session seulement (et non pour tout le système). Une unité en échec n'a pas démarré ou s'est arrêtée sur une erreur : le programme auquel elle appartient peut ne pas fonctionner comme prévu.
+SVC-USER-FAILED.warn.act.1=Indique ce qu'est l'unité, son état et ses derniers messages. Lecture seule.
+SVC-USER-FAILED.warn.act.2=Affiche tous les messages de l'unité depuis le démarrage de l'ordinateur, pour trouver la cause de l'erreur. Lecture seule.
+SVC-USER-FAILED.warn.act.3=Une fois la cause corrigée, l'unité sort de cette liste dès qu'elle démarre correctement (au plus tard à votre prochaine connexion).
+SVC-USER-FAILED.ev.1=Unités utilisateur en échec
+
+# ---- SVC-NETWORK ----
+SVC-NETWORK.info.title={n} service(s) réseau activé(s) au démarrage — vérifiez que chacun sert encore
+SVC-NETWORK.info.impact=Chacun de ces services démarre avec l'ordinateur et peut accepter des connexions venant d'autres machines. Un service lancé une fois pour un essai puis oublié peut rester ouvert pendant des années, et chaque service ouvert est une porte d'entrée s'il a une faille.
+SVC-NETWORK.info.act.1=Indique ce qu'est le service, s'il tourne et ses derniers messages. Lecture seule.
+SVC-NETWORK.info.act.2=Arrête le service tout de suite et ne le lance plus au démarrage, si vous ne vous en servez plus. Réversible : 'sudo systemctl enable --now' suivi du même nom le relance.
+SVC-NETWORK.info.caution=Comparez avec les ports en écoute de la section « Exposition réseau » (NET-LISTEN) : ils montrent lesquels de ces services acceptent vraiment des connexions. Si vous vous connectez à cet ordinateur à distance, ne désactivez pas le service qui vous sert à le faire (ssh, bureau à distance) : vous en perdriez l'accès.
+SVC-NETWORK.ev.1=Services activés (état actuel)
+SVC-NETWORK.ok.title=Aucun service réseau courant activé au démarrage

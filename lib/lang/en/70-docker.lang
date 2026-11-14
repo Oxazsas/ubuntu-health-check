@@ -1,0 +1,47 @@
+# Messages of lib/checks/70-docker.sh. Format and rules: see common.lang.
+# Container names may be masked (--sanitize): never put one in a title, a
+# consequence or a command; they belong in the evidence only.
+
+section.70-docker=Docker
+
+# ---- DKR-ABSENT ----
+DKR-ABSENT.info.title=Docker not installed
+DKR-ABSENT.info.impact=Nothing to check in this section.
+
+# ---- DKR-REPO ----
+DKR-REPO.warn.title={pkg} is installed but no configured repository provides it
+DKR-REPO.warn.impact=Docker no longer receives updates, security fixes included. The repository that provided it was probably removed, or disabled by a release upgrade.
+DKR-REPO.warn.act.1=Shows the installed version and the repositories that offer this package (none here). Read-only.
+DKR-REPO.warn.act.2=Lists the files of the additional repositories. A repository disabled by a release upgrade often has its file renamed or its lines commented out. Read-only.
+DKR-REPO.warn.act.3=Add back the repository for your current Ubuntu release: for docker-ce, follow the installation instructions on docs.docker.com; for docker.io, the package comes from Ubuntu's own repositories (universe).
+DKR-REPO.warn.act.4=Downloads the lists of available packages again, including the repository you added back. Changes no installed package.
+DKR-REPO.warn.act.5=Upgrades this package to the version now offered, without installing anything else.
+DKR-REPO.warn.caution=Before trusting a repository you add back, check that the fingerprint of its signing key matches the one published by Docker. The upgrade restarts the Docker service: containers without a restart policy stay stopped and must be started again.
+
+# ---- DKR-UPDATE ----
+DKR-UPDATE.info.title=Docker update available ({installed} -> {candidate})
+DKR-UPDATE.info.impact=A newer version of Docker is offered. Installing it brings the latest fixes, but restarts the Docker service and therefore every container.
+DKR-UPDATE.info.act.1=Lists the running containers, so you know which ones to check after the upgrade. Read-only (add sudo if you are not in the docker group).
+DKR-UPDATE.info.act.2=Upgrades Docker to the version offered, without installing anything else.
+DKR-UPDATE.info.caution=Containers without a restart policy stay stopped after the upgrade: start them again with 'docker start <container>'. Before a jump to a new major version, check that the tools that talk to Docker (management interfaces, scripts) support it.
+DKR-UPDATE.ok.title={pkg} {installed} is the latest available
+
+# ---- DKR-GROUP ----
+DKR-GROUP.info.title=Members of the 'docker' group: {members}
+DKR-GROUP.info.impact=Being in the docker group amounts to being root (the administrator) without typing a password: any program running under these accounts can take over the computer.
+DKR-GROUP.info.act.1=Shows the members of the docker group. Read-only.
+DKR-GROUP.info.act.2=On a personal computer where you are the only user, this is acceptable. Where code you do not fully trust runs (scripts, AI agents, project dependencies), consider rootless Docker, which runs without administrator rights (see docs.docker.com).
+DKR-GROUP.info.act.3=Removes an account from the docker group. Takes effect at its next login. Can be undone with 'sudo usermod -aG docker <user>'.
+DKR-GROUP.info.caution=An account removed from the group must use sudo for every docker command.
+
+# ---- DKR-EXPOSED ----
+DKR-EXPOSED.warn.title=Running container(s) publish ports on all interfaces
+DKR-EXPOSED.warn.impact=Docker writes its own firewall rules and bypasses ufw for published ports: these containers are reachable from other machines on the network even with the firewall turned on.
+DKR-EXPOSED.warn.act.1=Lists the running containers and their published ports. Read-only (add sudo if you are not in the docker group).
+DKR-EXPOSED.warn.act.2=Publish the port on 127.0.0.1 only: '-p 127.0.0.1:8080:80' instead of '-p 8080:80' with docker run, or '127.0.0.1:8080:80' in the ports of a Compose file. The service is then reachable from this computer only.
+DKR-EXPOSED.warn.act.3=In the folder of a Compose project, applies the changed setting by recreating the containers whose configuration changed.
+DKR-EXPOSED.warn.act.4=If a container must be reachable from other machines, protect it (password, access restricted to known addresses) and, once the risk is accepted, add DKR-EXPOSED to IGNORE_CHECKS in uhc.conf.
+DKR-EXPOSED.warn.caution=Recreating a container keeps the data stored in its volumes, but loses what was written inside the container itself. Check where your data lives before recreating one.
+DKR-EXPOSED.ev.1=Container, ports
+DKR-EXPOSED.ok.title=No running container publishes a port on all interfaces
+DKR-EXPOSED.partial.1=cannot query the Docker daemon (not running, or no permission: run with sudo)

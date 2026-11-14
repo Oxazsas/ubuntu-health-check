@@ -1,0 +1,45 @@
+# Messages de lib/checks/40-snap.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.40-snap=Paquets snap
+
+# ---- SNAP-ALL ----
+SNAP-ALL.partial.1=snap n'est pas installé ou snapd ne fonctionne pas
+
+# ---- SNAP-ERRORS ----
+SNAP-ERRORS.warn.title={n} opération(s) snap en échec récemment
+SNAP-ERRORS.warn.impact=Un snap dont la mise à jour échoue reste sur son ancienne version, sans les corrections de la nouvelle (correctifs de sécurité compris). Snap réessaie de lui-même, mais la même cause le fait en général échouer à nouveau.
+SNAP-ERRORS.warn.act.1=Liste les opérations snap récentes (installations, mises à jour, suppressions) avec leur résultat. L'identifiant figure dans la première colonne. Lecture seule.
+SNAP-ERRORS.warn.act.2=Affiche les étapes d'une opération, d'après son identifiant, et celle qui a échoué. Lecture seule.
+SNAP-ERRORS.warn.act.3=Met à jour tous les snaps tout de suite, une fois la cause corrigée (par exemple après avoir fermé l'application qui bloquait sa mise à jour). Un snap qui fonctionne mal après sa mise à jour peut revenir à sa version précédente avec 'sudo snap revert' suivi de son nom.
+SNAP-ERRORS.warn.caution=Regardez la date de chaque erreur dans les données ci-dessous : une erreur ancienne a pu être réglée depuis par une mise à jour réussie. Relancez la première commande pour voir si le problème est toujours là.
+SNAP-ERRORS.ev.1=snap changes (erreurs seulement)
+SNAP-ERRORS.ok.title=Aucune opération snap en échec dans l'historique récent
+SNAP-ERRORS.partial.1=historique des opérations snap illisible
+
+# ---- SNAP-DUPLICATE ----
+SNAP-DUPLICATE.conflict.title=Logiciel installé à la fois en snap et en paquet deb
+SNAP-DUPLICATE.conflict.impact=Deux exemplaires du même service tournent côte à côte et se disputent la même ressource. Par exemple deux services Bluetooth qui réclament le même nom sur le canal de messages interne du système (D-Bus) : le périphérique peut alors fonctionner par à-coups, et les mises à jour du snap échouent sans cesse.
+SNAP-DUPLICATE.conflict.act.1=Affiche les services fournis par le snap et indique s'ils tournent. Lecture seule.
+SNAP-DUPLICATE.conflict.act.2=Affiche ce à quoi le snap est relié (autres snaps, ressources du système), pour vérifier que rien n'en dépend avant de le retirer. Lecture seule.
+SNAP-DUPLICATE.conflict.act.3=Retire le snap et garde le paquet deb. Sur un poste de travail, c'est en général le deb qu'il faut garder pour les services du système. Snap enregistre d'abord une copie des données du snap, visible avec 'snap saved', et le snap peut être réinstallé avec 'sudo snap install' suivi de son nom.
+SNAP-DUPLICATE.conflict.caution=Ne retirez qu'un des deux exemplaires, et seulement si la deuxième commande n'a rien montré qui en dépende. Si plusieurs logiciels figurent ci-dessous, traitez-les un par un.
+SNAP-DUPLICATE.ev.1=Doublons avec un service des deux côtés
+SNAP-DUPLICATE.coexist.title=Logiciel installé à la fois en snap et en paquet deb (sans conflit de service)
+SNAP-DUPLICATE.coexist.impact=Les deux exemplaires cohabitent sans services concurrents, ce qui est souvent voulu (c'est le cas de snapd). Les garder tous les deux prend de la place sur le disque, et on ne sait pas toujours lequel démarre quand vous lancez le programme.
+SNAP-DUPLICATE.coexist.act.1=Si vous n'utilisez qu'un des deux exemplaires, vous pouvez retirer l'autre. Si vous ne savez pas pourquoi les deux sont là, laissez-les : rien n'est cassé.
+SNAP-DUPLICATE.coexist.act.2=Avant de retirer le snap, affiche ce à quoi il est relié (autres snaps, ressources du système), pour vérifier que rien n'en dépend. Lecture seule.
+SNAP-DUPLICATE.ev.2=Doublons
+
+# ---- SNAP-PUBLISHER ----
+SNAP-PUBLISHER.info.title=Snaps d'éditeurs non vérifiés
+SNAP-PUBLISHER.info.impact=Le Snap Store n'a pas vérifié l'identité de ces éditeurs. Ce n'est pas forcément un problème (beaucoup de snaps sont maintenus par leur communauté), mais un snap exécute le code que son éditeur y a mis : il faut donc faire confiance à chacun d'eux.
+SNAP-PUBLISHER.info.act.1=Affiche l'éditeur du snap, sa description et son contact ou sa page web. Lecture seule.
+SNAP-PUBLISHER.info.act.2=Retirez les snaps dont vous ne vous servez pas ou dont vous ne connaissez pas l'éditeur, avec 'sudo snap remove' suivi du nom. Gardez les autres.
+SNAP-PUBLISHER.ev.1=Snaps
+
+# ---- SNAP-CONFINEMENT ----
+SNAP-CONFINEMENT.info.title=Snaps sans confinement strict
+SNAP-CONFINEMENT.info.impact=La plupart des snaps tournent dans un espace fermé (le confinement) qui limite ce qu'ils peuvent atteindre sur l'ordinateur. Les snaps « classic » s'en passent et ont les mêmes accès qu'une application ordinaire : c'est normal pour les outils de développement et les outils en ligne de commande. Le mode « devmode » désactive cette protection et ne sert qu'à ceux qui développent le snap.
+SNAP-CONFINEMENT.info.act.1=Affiche l'éditeur et la description du snap, pour comprendre pourquoi il tourne ainsi. Lecture seule.
+SNAP-CONFINEMENT.info.act.2=Un snap en « devmode » que vous n'avez pas installé vous-même pour développer mérite un examen : si vous n'en avez pas besoin, retirez-le avec 'sudo snap remove' suivi de son nom.
+SNAP-CONFINEMENT.ev.1=Snaps

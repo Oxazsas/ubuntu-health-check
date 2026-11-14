@@ -1,0 +1,63 @@
+# Messages of lib/checks/10-system.sh. Format and rules: see common.lang.
+
+section.10-system=System
+
+# ---- SYS-OS ----
+SYS-OS.other.title=Not an Ubuntu system ({name})
+SYS-OS.other.impact=This tool is written for Ubuntu. Most checks still work on systems based on Debian, but support dates and some package names may be wrong for yours.
+SYS-OS.other.act.1=Shows the name and version of this system. Read-only.
+SYS-OS.other.act.2=Read the other findings with this in mind, and check how long your version is supported on the website of your distribution.
+SYS-OS.ok.title={name}
+
+# ---- SYS-EOL ----
+SYS-EOL.ended.title=Release {codename} is no longer supported (standard support ended)
+SYS-EOL.ended.impact=Ubuntu no longer publishes security fixes for this release, unless Ubuntu Pro is attached. Security holes found from now on stay open on this computer.
+SYS-EOL.ended.act.1=Shows whether Ubuntu Pro is attached. Ubuntu Pro extends security fixes for older releases (free for personal use on up to 5 machines). Read-only.
+SYS-EOL.ended.act.2=Checks whether an upgrade to a newer release is offered for this computer. Changes nothing.
+SYS-EOL.ended.caution=A release upgrade takes time and cannot be undone. Back up your personal files first, keep a laptop plugged in, and clean up the obsolete packages and third-party repositories listed in this report: they are the usual cause of failed upgrades.
+SYS-EOL.soon.title=Standard support for {codename} ends in {days} days
+SYS-EOL.soon.impact=After {date}, this release no longer receives security fixes. Your programs keep working, but security holes found after that date stay open.
+SYS-EOL.soon.act.1=Checks whether an upgrade to a newer release is offered for this computer. Changes nothing.
+SYS-EOL.soon.act.2=Plan the upgrade before that date, at a time when you can do without the computer for an hour or two.
+SYS-EOL.soon.caution=A release upgrade cannot be undone. Back up your personal files first, and clean up the obsolete packages and third-party repositories listed in this report: they are the usual cause of failed upgrades.
+SYS-EOL.ok.title=Standard support for {codename} until {date}
+SYS-EOL.partial.1=support end date not checked (ubuntu-distro-info unavailable)
+
+# ---- SYS-RELEASE ----
+SYS-RELEASE.info.title=A newer LTS release is available ({release})
+SYS-RELEASE.info.impact=Nothing urgent while your current release is supported. Moving to the newer LTS brings newer software and a later end of support.
+SYS-RELEASE.info.act.1=Before any upgrade, clean up the obsolete packages and third-party repositories listed in this report: they are the usual cause of failed upgrades.
+SYS-RELEASE.info.act.2=Shows whether the upgrade is already offered for this computer (Ubuntu offers it some time after the release). Changes nothing.
+
+# ---- SYS-REBOOT ----
+SYS-REBOOT.warn.title=A reboot is required to finish applying updates
+SYS-REBOOT.warn.impact=Some updates are installed but not in use yet, often security fixes for the kernel or core libraries. Until the computer restarts, it stays exposed to the problems they fix.
+SYS-REBOOT.warn.act.1=Save your work, then restart the computer from the system menu when it suits you.
+SYS-REBOOT.warn.caution=Close your documents before restarting. On a computer that others use remotely, warn them first: its services stop for a few minutes.
+SYS-REBOOT.ev.1=Packages requesting the reboot (/var/run/reboot-required.pkgs)
+SYS-REBOOT.ok.title=No reboot pending
+
+# ---- SYS-TIME ----
+SYS-TIME.warn.title=Clock is not synchronised with NTP (time zone {tz})
+SYS-TIME.warn.impact=A clock that drifts makes secure websites and updates fail with certificate errors, and gives wrong times in the logs.
+SYS-TIME.warn.act.1=Shows whether automatic time synchronisation is working and which time server it uses. Read-only.
+SYS-TIME.warn.act.2=Turns on automatic time synchronisation. Can be undone: the same command with false instead of true turns it off.
+SYS-TIME.warn.caution=Just after start-up, or without a network connection, synchronisation can take a few minutes: run the audit again before changing anything.
+SYS-TIME.ev.1=timedatectl
+SYS-TIME.ok.title=Clock synchronised (time zone {tz})
+SYS-TIME.partial.1=clock synchronisation not checked (timedatectl unavailable or no systemd)
+
+# ---- SYS-DISK ----
+SYS-DISK.crit.title=Filesystem {target} is {pcent} full
+SYS-DISK.crit.impact=When {target} is full, updates stop half-way, programs can no longer save their data, and the system can become unstable. Free some space soon.
+SYS-DISK.warn.title=Filesystem {target} is {pcent} full
+SYS-DISK.warn.impact=If {target} keeps filling up, updates and programs will start to fail. Freeing space now is easier than when it is full.
+SYS-DISK.full.act.1=Lists the packages that are no longer needed (often old kernels) and that apt would remove. Simulation only: nothing is removed.
+SYS-DISK.full.act.2=Deletes the downloaded package files kept by apt. Safe: apt downloads them again if it needs them.
+SYS-DISK.full.act.3=Shows how much space the system logs use. Read-only.
+SYS-DISK.full.act.4=Shows how much space Docker images, containers and volumes use. Read-only.
+SYS-DISK.full.act.same=See the actions proposed for {target}: they free space here too.
+SYS-DISK.full.caution=Read the list shown by the simulation before running 'sudo apt autoremove' for real, and stop if it contains something you use. A removed package can be installed again; a deleted personal file cannot be recovered.
+SYS-DISK.ok.title=Disk usage below {warn}% on system filesystems
+SYS-DISK.ev.1=Usage of system filesystems
+SYS-DISK.partial.1=disk usage could not be read (df failed)

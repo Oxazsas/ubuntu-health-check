@@ -1,0 +1,161 @@
+# Messages de lib/checks/30-apt.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.30-apt=Paquets et dépôts APT
+
+# ---- APT-LISTS-AGE ----
+APT-LISTS-AGE.warn.title=Les listes de paquets datent de {days} jours
+APT-LISTS-AGE.warn.impact=Les listes de paquets indiquent à l'ordinateur quelles mises à jour existent. Elles n'ont pas été actualisées depuis longtemps : les résultats ci-dessous sont peut-être dépassés, et les mises à jour automatiques ne fonctionnent probablement pas. Les correctifs de sécurité n'arrivent donc pas.
+APT-LISTS-AGE.warn.act.1=Télécharge les listes de paquets à jour. Ne modifie aucun paquet installé. Relancez ensuite l'audit.
+APT-LISTS-AGE.warn.act.2=Indique quand l'actualisation quotidienne des listes a eu lieu pour la dernière fois et quand elle aura lieu ensuite. Lecture seule.
+APT-LISTS-AGE.warn.caution=Sur un ordinateur rarement allumé, ou souvent hors ligne, des listes anciennes sont normales. Si elles restent anciennes alors que l'ordinateur sert tous les jours, consultez plus bas les résultats sur les mises à jour automatiques.
+APT-LISTS-AGE.ok.title=Listes de paquets actualisées il y a {days} jour(s)
+APT-LISTS-AGE.partial.1=âge des listes de paquets inconnu (aucun fichier Release dans /var/lib/apt/lists)
+
+# ---- APT-UPGRADES / APT-SECURITY-UPGRADES ----
+APT-UPGRADES.partial.1=mises à jour en attente non vérifiées (échec de 'apt list')
+APT-SECURITY-UPGRADES.warn.title={n} mise(s) à jour de sécurité en attente ({total} mises à jour au total)
+APT-SECURITY-UPGRADES.warn.impact=Des correctifs de sécurité sont disponibles mais pas installés. Tant qu'ils ne le sont pas, l'ordinateur reste exposé aux problèmes qu'ils corrigent. Ils sont normalement installés automatiquement en moins d'une journée.
+APT-SECURITY-UPGRADES.warn.act.1=Liste les mises à jour en attente d'installation. Lecture seule.
+APT-SECURITY-UPGRADES.warn.act.2=Installe les mises à jour en attente. apt affiche la liste et demande confirmation avant de commencer ; cette commande ne retire jamais de paquet.
+APT-SECURITY-UPGRADES.warn.act.3=Si les mises à jour de sécurité continuent de s'accumuler, consultez plus bas les résultats sur les mises à jour automatiques (unattended-upgrades).
+APT-SECURITY-UPGRADES.warn.caution=Certaines mises à jour (noyau, bibliothèques essentielles) ne s'appliquent qu'après un redémarrage : l'audit signalera alors un redémarrage en attente.
+APT-SECURITY-UPGRADES.ev.1=apt list --upgradable
+APT-UPGRADES.info.title={n} mise(s) à jour hors sécurité en attente
+APT-UPGRADES.info.impact=Ces mises à jour apportent des corrections de bogues et des améliorations, pas des correctifs de sécurité. Rien d'urgent : installez-les quand cela vous arrange.
+APT-UPGRADES.info.act.1=Installe les mises à jour en attente. apt affiche la liste et demande confirmation avant de commencer ; cette commande ne retire jamais de paquet.
+APT-UPGRADES.ev.1=apt list --upgradable
+APT-UPGRADES.ok.title=Aucune mise à jour en attente
+
+# ---- APT-PHASED ----
+APT-PHASED.info.title={n} mise(s) à jour différée(s) par le déploiement progressif
+APT-PHASED.info.impact=C'est normal. Ubuntu diffuse certaines mises à jour progressivement, à une part croissante des ordinateurs, pour pouvoir arrêter tôt une mise à jour défectueuse. Elles s'installeront automatiquement quand cet ordinateur sera concerné. Rien à faire.
+APT-PHASED.ev.1=Paquets différés (apt-get -s upgrade)
+
+# ---- APT-HELD ----
+APT-HELD.warn.title={n} paquet(s) bloqué(s) (jamais mis à jour)
+APT-HELD.warn.impact=Un paquet bloqué (« hold ») n'est jamais mis à jour, même pour un correctif de sécurité. Ce blocage est parfois voulu, mais un blocage oublié laisse des problèmes connus sans correction.
+APT-HELD.warn.act.1=Liste les paquets bloqués. Lecture seule.
+APT-HELD.warn.act.2=Débloque un paquet (remplacez <package> par son nom) pour qu'il soit de nouveau mis à jour. Réversible avec 'sudo apt-mark hold <package>'.
+APT-HELD.warn.caution=Avant de débloquer un paquet, cherchez pourquoi il a été bloqué : un blocage protège souvent un programme qui ne fonctionne plus avec une version plus récente (pilotes graphiques, par exemple).
+APT-HELD.ev.1=Paquets bloqués
+
+# ---- APT-STUCK-VERSION ----
+APT-STUCK-VERSION.warn.title={n} paquet(s) figé(s) sur une version provenant d'un dépôt retiré ou désactivé
+APT-STUCK-VERSION.warn.impact=Ces paquets proviennent d'une source qui n'est plus configurée, souvent un PPA (dépôt personnel) ou le dépôt d'un éditeur désactivé lors d'une mise à niveau. Ubuntu propose une autre version, mais le numéro de la version installée est souvent plus élevé : apt ne la remplace jamais, et ces paquets ne reçoivent plus de mises à jour.
+APT-STUCK-VERSION.warn.act.1=Affiche la version installée et les versions proposées par vos dépôts (remplacez <package> par un nom de la liste ci-dessous). Lecture seule.
+APT-STUCK-VERSION.warn.act.2=Montre ce que changerait le retour à la version d'Ubuntu. Simple simulation : rien n'est installé.
+APT-STUCK-VERSION.warn.act.3=Installe la version d'Ubuntu à la place de la version figée. Pour revenir en arrière, il faudrait réinstaller l'ancienne version à la main.
+APT-STUCK-VERSION.warn.caution=Lisez la simulation : si elle retire d'autres paquets, arrêtez-vous. Revenir à une version plus ancienne peut faire perdre des fonctions ajoutées par la version tierce ; si vous en avez encore besoin, réactivez plutôt le dépôt de cet éditeur pour votre version d'Ubuntu.
+APT-STUCK-VERSION.ev.1=Versions installées et disponibles (apt-cache policy)
+
+# ---- APT-OBSOLETE ----
+APT-OBSOLETE.partial.1=origine des paquets installés non vérifiée (échec de 'apt list --installed')
+APT-OBSOLETE.warn.title={n} paquet(s) proposé(s) par aucun dépôt
+APT-OBSOLETE.warn.impact=Ces paquets ne recevront plus jamais de mises à jour, correctifs de sécurité compris. Ce sont en général des restes d'une version précédente d'Ubuntu, un fichier .deb installé à la main, ou des paquets d'un dépôt retiré.
+APT-OBSOLETE.warn.act.1=Montre ce que la suppression d'un paquet (remplacez <package> par un nom de la liste ci-dessous) retirerait avec lui, réglages compris. Simple simulation.
+APT-OBSOLETE.warn.act.2=Pour une bibliothèque renommée dans les versions récentes (nom terminé par t64 depuis Ubuntu 24.04), indique si son successeur existe. Installer le successeur remplace proprement l'ancienne. Lecture seule.
+APT-OBSOLETE.warn.act.3=Retire le paquet et ses réglages communs à tout le système. Difficile à annuler : plus aucun dépôt ne le propose.
+APT-OBSOLETE.warn.caution=Ne retirez pas ces paquets à l'aveugle : d'autres paquets peuvent en dépendre. Simulez toujours d'abord, et arrêtez-vous si ubuntu-desktop, ubuntu-desktop-minimal ou d'autres paquets qui maintiennent le bureau installé apparaissent dans la liste. Gardez une copie d'un .deb installé à la main si vous risquez d'en avoir encore besoin.
+APT-OBSOLETE.ev.1=Paquets obsolètes
+APT-OBSOLETE.ok.title=Chaque version de paquet installée est proposée par un dépôt configuré
+
+# ---- APT-OBSOLETE-KERNEL ----
+APT-OBSOLETE-KERNEL.info.title={n} paquet(s) obsolète(s) lié(s) au noyau
+APT-OBSOLETE-KERNEL.info.impact=D'anciens noyaux, en-têtes de noyau et métapaquets de noyau issus de versions précédentes. Ils occupent de la place et ne reçoivent plus de mises à jour. Rien d'urgent si le résultat sur le métapaquet du noyau plus haut est OK.
+APT-OBSOLETE-KERNEL.info.act.1=Montre ce que retirerait la suppression de l'ancien métapaquet du noyau (remplacez <package> par son nom, dans la liste ci-dessous). Simple simulation. Si la liste vous convient, relancez la commande sans --simulate.
+APT-OBSOLETE-KERNEL.info.act.2=Liste ensuite les anciens noyaux devenus inutiles qu'apt retirerait. Simple simulation. Si la liste vous convient, relancez la commande sans --simulate.
+APT-OBSOLETE-KERNEL.info.caution=Ne le faites que si le résultat sur le métapaquet du noyau plus haut est OK, et une fois le noyau actuel utilisé sans problème depuis un moment. Arrêtez-vous si une simulation retire le noyau en cours d'utilisation ou ubuntu-desktop.
+APT-OBSOLETE-KERNEL.ev.1=Paquets du noyau obsolètes
+
+# ---- APT-RESIDUAL ----
+APT-RESIDUAL.info.title={n} paquet(s) retiré(s) dont les fichiers de configuration subsistent
+APT-RESIDUAL.info.impact=Ces paquets ont été retirés, mais leurs réglages communs à tout le système sont restés. Sans danger, cela encombre seulement le système.
+APT-RESIDUAL.info.act.1=Liste les réglages restants qui seraient supprimés. Simple simulation. Gardez les guillemets autour de ~c.
+APT-RESIDUAL.info.act.2=Supprime ces réglages restants. Irréversible : un paquet réinstallé plus tard repartira de ses réglages par défaut.
+APT-RESIDUAL.info.caution=Relisez d'abord la liste. Gardez les restes d'un paquet que vous comptez réinstaller avec vos propres réglages.
+APT-RESIDUAL.ev.1=Paquets à l'état « rc »
+
+# ---- APT-REPO-DISABLED ----
+APT-REPO-DISABLED.info.title=Entrées de dépôts tiers désactivées : {n}
+APT-REPO-DISABLED.info.impact=Une mise à niveau d'Ubuntu désactive les dépôts tiers. Les paquets installés depuis ces dépôts ne reçoivent plus de mises à jour (voir plus haut les paquets obsolètes ou figés sur une version).
+APT-REPO-DISABLED.info.act.1=Si vous utilisez encore ces paquets, cherchez sur le site de l'éditeur comment activer son dépôt pour votre version actuelle d'Ubuntu.
+APT-REPO-DISABLED.info.act.2=Si vous ne les utilisez plus, retirez les paquets, puis supprimez l'entrée désactivée du fichier indiqué ci-dessous.
+APT-REPO-DISABLED.ev.1=Entrées désactivées (fichier, URI, suite)
+
+# ---- APT-REPO-LEFTOVER ----
+APT-REPO-LEFTOVER.info.title={n} fichier(s) résiduel(s) dans sources.list.d
+APT-REPO-LEFTOVER.info.impact=Des copies de sauvegarde créées par une mise à niveau ou une modification à la main. apt les ignore : elles ne gênent pas, mais rendent la configuration des dépôts plus difficile à lire.
+APT-REPO-LEFTOVER.info.act.1=Liste les fichiers de dépôts, actifs et résiduels. Lecture seule.
+APT-REPO-LEFTOVER.info.act.2=Supprime un fichier résiduel (remplacez <file> par un nom de la liste ci-dessous). Irréversible.
+APT-REPO-LEFTOVER.info.caution=Avant de supprimer un fichier résiduel, comparez-le avec le fichier actif du même nom : il contient peut-être une entrée dont vous avez encore besoin.
+APT-REPO-LEFTOVER.ev.1=Fichiers résiduels
+
+# ---- APT-REPO-THIRDPARTY ----
+APT-REPO-THIRDPARTY.info.title=Entrées de dépôts tiers activées : {n}
+APT-REPO-THIRDPARTY.info.impact=Chacun de ces dépôts peut installer ou remplacer n'importe quel paquet avec tous les droits d'administration. Un dépôt dont vous ne vous servez plus, ou dont vous ne connaissez pas l'éditeur, est un risque inutile.
+APT-REPO-THIRDPARTY.info.act.1=Parcourez la liste ci-dessous et ne gardez que les éditeurs en qui vous avez confiance et dont vous utilisez encore les logiciels.
+APT-REPO-THIRDPARTY.ev.1=Dépôts tiers activés
+
+# ---- APT-REPO-SUITE ----
+APT-REPO-SUITE.crit.title=Des dépôts officiels Ubuntu d'une autre version sont activés
+APT-REPO-SUITE.crit.impact=Votre système prend ses paquets dans deux versions d'Ubuntu à la fois. Cela casse les dépendances entre paquets, et la prochaine mise à jour peut faire monter ou descendre de version une partie du système.
+APT-REPO-SUITE.crit.act.1=Dans chaque fichier listé ci-dessous, remplacez le nom de version par {codename} (par exemple avec 'sudo nano' suivi du nom du fichier).
+APT-REPO-SUITE.crit.act.2=Télécharge de nouveau les listes de paquets avec la configuration corrigée. Ne modifie aucun paquet installé.
+APT-REPO-SUITE.crit.act.3=Affiche les dépôts désormais utilisés, pour vérifier qu'il ne reste que {codename}. Lecture seule.
+APT-REPO-SUITE.crit.caution=N'installez ni ne mettez à jour aucun paquet avant d'avoir corrigé cela. Gardez une copie de chaque fichier avant de le modifier, en dehors de /etc/apt/sources.list.d. Si des paquets de l'autre version sont déjà installés, demandez de l'aide avant d'aller plus loin.
+APT-REPO-SUITE.ev.1=Entrées qui ne correspondent pas
+APT-REPO-SUITE.info.title=Des dépôts tiers utilisent un autre nom de version que '{codename}'
+APT-REPO-SUITE.info.impact=Certains éditeurs publient un seul ensemble de paquets pour toutes les versions : c'est normal pour Signal, par exemple. Sinon, des paquets prévus pour une autre version risquent de mal fonctionner sur la vôtre.
+APT-REPO-SUITE.info.act.1=Pour chaque éditeur listé ci-dessous, vérifiez sur son site s'il propose des paquets pour {codename}, et passez-y si c'est le cas.
+APT-REPO-SUITE.ev.2=Entrées
+
+# ---- APT-REPO-DUPLICATE ----
+APT-REPO-DUPLICATE.info.title=Dépôt déclaré plusieurs fois
+APT-REPO-DUPLICATE.info.impact=apt signale les dépôts configurés plusieurs fois. Si les copies désignent des clés de signature différentes (Signed-By), 'apt update' peut échouer, et les mises à jour s'arrêtent.
+APT-REPO-DUPLICATE.info.act.1=Gardez un seul fichier par dépôt : supprimez l'entrée en double des autres fichiers listés ci-dessous. Préférez le format .sources quand l'éditeur le propose.
+APT-REPO-DUPLICATE.info.act.2=Télécharge de nouveau les listes de paquets, pour vérifier que l'avertissement a disparu. Ne modifie aucun paquet installé.
+APT-REPO-DUPLICATE.info.caution=Gardez une copie d'un fichier avant de le modifier, en dehors de /etc/apt/sources.list.d.
+APT-REPO-DUPLICATE.ev.1=Doublons (URI suite -> fichiers)
+
+# ---- APT-LEGACY-KEYS ----
+APT-LEGACY-KEYS.info.title=Ancien trousseau de clés APT global utilisé (/etc/apt/trusted.gpg)
+APT-LEGACY-KEYS.info.impact=Les clés rangées dans ce fichier peuvent signer des paquets pour n'importe quel dépôt : la clé d'un éditeur pourrait servir à remplacer des paquets d'Ubuntu. La pratique actuelle est une clé par dépôt, désignée dans la configuration du dépôt (Signed-By).
+APT-LEGACY-KEYS.info.act.1=Liste les clés du fichier, avec leur propriétaire et leur empreinte. Lecture seule.
+APT-LEGACY-KEYS.info.act.2=Pour chaque éditeur, suivez ses instructions d'installation actuelles, qui rangent sa clé dans un fichier séparé. Retirez ensuite l'ancienne clé du trousseau global.
+APT-LEGACY-KEYS.info.caution=Avant de faire de nouveau confiance à une clé, vérifiez que son empreinte correspond à celle publiée sur le site de l'éditeur. Retirer une clé dont un dépôt a encore besoin fait échouer 'apt update' pour ce dépôt.
+
+# ---- APT-UNATTENDED ----
+APT-UNATTENDED.ok.title=Mises à jour de sécurité automatiques activées
+APT-UNATTENDED.off.title=unattended-upgrades est installé mais désactivé
+APT-UNATTENDED.off.impact=Les mises à jour de sécurité ne s'installent pas automatiquement. Elles n'arrivent que si quelqu'un les installe à la main : l'ordinateur peut rester exposé pendant des semaines.
+APT-UNATTENDED.off.act.1=Affiche le réglage qui active (« 1 ») ou désactive (« 0 ») les mises à jour automatiques. Lecture seule.
+APT-UNATTENDED.off.act.2=Demande s'il faut installer automatiquement les mises à jour de sécurité : répondez Oui. Réversible en relançant la commande et en répondant Non.
+APT-UNATTENDED.missing.title=unattended-upgrades n'est pas installé
+APT-UNATTENDED.missing.impact=Aucun programme n'installe automatiquement les mises à jour de sécurité. Elles n'arrivent que si quelqu'un les installe à la main : l'ordinateur peut rester exposé pendant des semaines.
+APT-UNATTENDED.missing.act.1=Indique si unattended-upgrades est proposé par vos dépôts. Lecture seule.
+APT-UNATTENDED.missing.act.2=Installe unattended-upgrades, qui installera ensuite les mises à jour de sécurité chaque jour. Réversible en le retirant.
+
+# ---- APT-UNATTENDED-LASTRUN ----
+APT-UNATTENDED-LASTRUN.warn.title=Dernier passage d'unattended-upgrades il y a {days} jours ({date})
+APT-UNATTENDED-LASTRUN.warn.impact=Les mises à jour automatiques devraient passer chaque jour. Elles n'ont pas tourné depuis plus d'une semaine : des correctifs de sécurité récents manquent probablement.
+APT-UNATTENDED-LASTRUN.warn.act.1=Indique quand la tâche quotidienne de mise à jour a tourné pour la dernière fois et quand elle tournera ensuite. Lecture seule.
+APT-UNATTENDED-LASTRUN.warn.act.2=Affiche la fin du journal des mises à jour automatiques. Lecture seule.
+APT-UNATTENDED-LASTRUN.warn.caution=Sur un ordinateur rarement allumé, c'est normal : la tâche passe au démarrage suivant.
+APT-UNATTENDED-LASTRUN.partial.1=journal d'unattended-upgrades illisible (lancez l'audit avec sudo)
+
+# ---- APT-UNATTENDED-ERRORS ----
+APT-UNATTENDED-ERRORS.warn.title=Erreurs récentes dans le journal d'unattended-upgrades
+APT-UNATTENDED-ERRORS.warn.impact=Certaines mises à jour automatiques ont peut-être échoué. Les paquets concernés restent à leur ancienne version, peut-être sans leurs correctifs de sécurité.
+APT-UNATTENDED-ERRORS.warn.act.1=Affiche la fin du journal des mises à jour automatiques, autour des messages ci-dessous. Lecture seule.
+APT-UNATTENDED-ERRORS.warn.act.2=Lance les mises à jour automatiques en mode test et explique chaque décision : les paquets sont téléchargés, mais rien n'est installé.
+APT-UNATTENDED-ERRORS.warn.act.3=Cherchez dans les autres résultats de cette section le paquet cité dans les messages (bloqué, figé sur une version, obsolète) : corriger ce résultat règle en général l'erreur.
+APT-UNATTENDED-ERRORS.warn.caution=Une erreur isolée après une coupure de courant ou de réseau est souvent sans conséquence : relancez l'audit après le prochain passage quotidien avant de modifier quoi que ce soit.
+APT-UNATTENDED-ERRORS.ev.1=Dernières erreurs et avertissements
+
+# ---- APT-PRO-STATUS ----
+APT-PRO-STATUS.partial.1=pro security-status ignoré (écrirait des journaux en tant que root ; lancez l'audit avec sudo depuis un compte ordinaire)
+APT-PRO-STATUS.info.title=Couverture de sécurité (pro security-status)
+APT-PRO-STATUS.info.impact=Ubuntu publie des correctifs de sécurité pour ses paquets principaux (Main et Restricted). Les paquets de Universe et Multiverse ne reçoivent que les correctifs de la communauté, et les paquets tiers ou qui ne sont plus proposés n'en reçoivent aucun de la part d'Ubuntu.
+APT-PRO-STATUS.info.act.1=Affiche le résumé complet, avec le nombre de paquets de chaque groupe. Lecture seule.
+APT-PRO-STATUS.info.act.2=Cet ordinateur n'est pas rattaché à Ubuntu Pro. Ubuntu Pro (gratuit pour un usage personnel, jusqu'à 5 machines) ajoute des correctifs de sécurité pour les paquets de Universe et le Livepatch du noyau (correctifs appliqués sans redémarrer). C'est facultatif.
+APT-PRO-STATUS.ev.1=pro security-status

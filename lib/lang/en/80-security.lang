@@ -1,0 +1,125 @@
+# Messages of lib/checks/80-security.sh. Format and rules: see common.lang.
+# SSH key file names may be masked (--sanitize): never put one in a title, a
+# consequence or a command (use <key-file>); they belong in the evidence only.
+
+section.80-security=Security posture
+
+# ---- SEC-DISK-ENC ----
+SEC-DISK-ENC.ok.title=Encrypted block device found (LUKS)
+SEC-DISK-ENC.warn.title=No disk encryption detected on a laptop
+SEC-DISK-ENC.warn.impact=If the laptop is lost or stolen, anyone can read all its data (projects, passwords and access tokens, SSH keys, database dumps) by plugging the disk into another computer. The login password does not protect the disk itself.
+SEC-DISK-ENC.warn.act.1=Meanwhile, keep sensitive data in encrypted archives or in a vault (a password manager, an encrypted folder).
+SEC-DISK-ENC.warn.act.2=Full-disk encryption can only be added cleanly when installing Ubuntu: at the next reinstall, choose the encryption option of the installer and pick a strong passphrase.
+SEC-DISK-ENC.warn.act.3=If you accept the risk, add SEC-DISK-ENC to IGNORE_CHECKS in uhc.conf: this warning will no longer appear.
+SEC-DISK-ENC.info.title=No disk encryption detected
+SEC-DISK-ENC.info.impact=Lower risk for a desktop computer kept in a secured place. Without encryption, anyone who takes the disk can read its content.
+SEC-DISK-ENC.info.act.1=If this computer holds sensitive data, consider encryption at the next reinstall of Ubuntu (encryption option of the installer).
+SEC-DISK-ENC.info.act.2=If the risk is accepted, you can add SEC-DISK-ENC to IGNORE_CHECKS in uhc.conf.
+SEC-DISK-ENC.none.caution=Encrypting the disk of an installed system means reinstalling it: make a full backup first and check that you can restore it. Keep the passphrase in a safe place: if it is forgotten, the data cannot be recovered.
+
+# ---- SEC-SECUREBOOT ----
+SEC-SECUREBOOT.ok.title=Secure Boot enabled
+SEC-SECUREBOOT.off.title=Secure Boot disabled
+SEC-SECUREBOOT.off.impact=Secure Boot is a firmware setting that only lets signed software start the computer. Without it, a modified kernel or a "rootkit" (malware that loads before the system and hides from it) can start unnoticed.
+SEC-SECUREBOOT.off.act.1=Lists the extra drivers built on this computer (DKMS modules, such as NVIDIA or VirtualBox). If the command is not found, there are none. Read-only.
+SEC-SECUREBOOT.off.act.2=If there are any, they must be signed with a key you enrol at the next start-up (MOK enrolment, offered by Ubuntu when such a driver is installed); otherwise they stop loading once Secure Boot is on.
+SEC-SECUREBOOT.off.act.3=Turn Secure Boot on in the firmware setup (the screen reached with a key such as F2, F10 or Del at power-on). Ubuntu kernels are signed and start normally.
+SEC-SECUREBOOT.off.caution=If the computer no longer starts, or a driver (graphics card, virtualisation) stops working, turn Secure Boot off again in the same firmware screen: nothing is lost.
+SEC-SECUREBOOT.bios.title=Legacy BIOS boot (no UEFI): Secure Boot not applicable
+SEC-SECUREBOOT.bios.impact=This computer starts in legacy mode, where Secure Boot does not exist. Nothing to do.
+SEC-SECUREBOOT.partial.1=Secure Boot state not readable
+
+# ---- SEC-APPARMOR ----
+SEC-APPARMOR.ok.title=AppArmor enabled
+SEC-APPARMOR.warn.title=AppArmor disabled
+SEC-APPARMOR.warn.impact=AppArmor is the Ubuntu mechanism that limits what each service and snap may do. Without it, a flaw in one of them gives an attacker much wider access to the system.
+SEC-APPARMOR.warn.act.1=Shows the options the kernel was started with: look for apparmor=0, which turns AppArmor off. Read-only.
+SEC-APPARMOR.warn.act.2=If apparmor=0 is there, remove it from the GRUB_CMDLINE_LINUX_DEFAULT or GRUB_CMDLINE_LINUX line of /etc/default/grub (edit the file with sudo).
+SEC-APPARMOR.warn.act.3=Rewrites the boot menu from /etc/default/grub. The change takes effect at the next restart.
+SEC-APPARMOR.warn.caution=A mistake in /etc/default/grub can prevent the computer from starting: copy the file first ('sudo cp /etc/default/grub /etc/default/grub.bak') and change only that word.
+
+# ---- SEC-UID0 ----
+SEC-UID0.crit.title=Account(s) other than root with UID 0: {accounts}
+SEC-UID0.crit.impact=UID 0 is the user number of root, the administrator: any account with it has full control of the computer. Ubuntu creates only one such account, root. A second one is a known way to hide a backdoor, unless you created it on purpose.
+SEC-UID0.crit.act.1=Shows the account line: its home folder and its shell (the program started when it logs in). Read-only.
+SEC-UID0.crit.act.2=Shows whether the account has a password and whether it is locked. Read-only.
+SEC-UID0.crit.act.3=Locks the account's password: nobody can log in with it any more. Can be undone with 'sudo passwd -u <name>'.
+SEC-UID0.crit.caution=Locking the password does not block logins with an SSH key. If you did not create this account, assume someone else may have had control of the computer: changing a password is not enough, get help from someone experienced before using the computer for anything sensitive.
+
+# ---- SEC-ADMINS ----
+SEC-ADMINS.info.title=Accounts with sudo rights: {accounts}
+SEC-ADMINS.info.none=none
+SEC-ADMINS.info.impact=The accounts listed can act as administrator (root) with the sudo command, after typing their own password.
+SEC-ADMINS.info.act.1=Check that each one belongs to a person who should administer this computer.
+SEC-ADMINS.info.act.2=Removes an account from the sudo group (replace <user> with its name). Takes effect at its next login. Can be undone with 'sudo usermod -aG sudo <user>'.
+SEC-ADMINS.info.caution=Never remove your own account if it is the last administrator: you would no longer be able to manage the computer.
+
+# ---- SEC-EMPTY-PW ----
+SEC-EMPTY-PW.crit.title=Account(s) with an empty password: {accounts}
+SEC-EMPTY-PW.crit.impact=Anyone can log in as these accounts, without typing anything, wherever password logins are allowed (login screen, console, remote access).
+SEC-EMPTY-PW.crit.act.1=Shows the password state of the account (NP means no password). Read-only.
+SEC-EMPTY-PW.crit.act.2=Sets a password for the account. Use it for an account someone uses to log in.
+SEC-EMPTY-PW.crit.act.3=Locks the account's password: nobody can log in with it any more. For an account nobody uses to log in. Can be undone with 'sudo passwd -u <name>'.
+SEC-EMPTY-PW.crit.caution=If one of these accounts is your own, set a password rather than locking it.
+SEC-EMPTY-PW.partial.1=accounts with empty passwords not checked (needs sudo)
+
+# ---- SEC-SSHD ----
+SEC-SSHD-EFFECTIVE.partial.1=effective sshd configuration needs sudo; files read directly (defaults not shown)
+SEC-SSHD.weak.title=SSH server running with weak settings: {issues}
+SEC-SSHD.weak.impact=The SSH server lets people log in to this computer from the network. With password logins, anyone who can reach it can try passwords until one works; with direct root login, a single success gives full control.
+SEC-SSHD.weak.act.1=Shows the settings the SSH server actually uses for these two points. Read-only.
+SEC-SSHD.weak.act.2=Before turning password logins off, make sure that logging in with an SSH key works: from the other computer, copy your public key with ssh-copy-id, then test a login in a new window.
+SEC-SSHD.weak.act.3=In /etc/ssh/sshd_config, or in the file of /etc/ssh/sshd_config.d/ that sets them, use 'PasswordAuthentication no' and 'PermitRootLogin no' (or 'prohibit-password'). Edit the file with sudo.
+SEC-SSHD.weak.act.4=Checks the SSH server configuration for errors. Changes nothing.
+SEC-SSHD.weak.act.5=Applies the new configuration. Open sessions stay connected.
+SEC-SSHD.weak.caution=On a computer you manage remotely, a mistake here can lock you out. Keep your current session open, test a new login in a second window before closing it, and never turn password logins off before key logins work.
+SEC-SSHD.running.title=SSH server running
+SEC-SSHD.running.impact=The SSH server lets people log in to this computer from the network. If you never do that, it is an open door for nothing.
+SEC-SSHD.running.act.1=Shows the state of the SSH server. Read-only.
+SEC-SSHD.running.act.2=Stops the SSH server and keeps it from starting at boot. Can be undone with 'sudo systemctl enable --now ssh.socket' on Ubuntu 22.10 and later, or 'sudo systemctl enable --now ssh' on older releases.
+SEC-SSHD.running.caution=Do not run this from an SSH session: you would cut your own access. Run it on the computer itself.
+SEC-SSHD.stopped.title=openssh-server installed but not running
+SEC-SSHD.stopped.impact=Nothing waits for remote logins right now. If you never connect to this computer remotely, the package is not needed.
+SEC-SSHD.stopped.act.1=Uninstalls the SSH server. Can be undone by installing it again with 'sudo apt install openssh-server'.
+
+# ---- SEC-SSH-KEYS ----
+SEC-SSH-KEYS.nopass.title=SSH private key(s) without passphrase in {dir}
+SEC-SSH-KEYS.nopass.impact=Any program running under this account (a malicious script, a compromised project dependency) can copy these keys and use them to log in to your servers or code hosting, without anything to type.
+SEC-SSH-KEYS.nopass.act.1=Shows the fingerprint and type of a key (replace <key-file> with a name from the list below), to find out where it is used. Shows nothing secret. Read-only.
+SEC-SSH-KEYS.nopass.act.2=Adds a passphrase to the key. The key itself does not change: servers keep accepting it. Can be undone by running it again with an empty passphrase.
+SEC-SSH-KEYS.nopass.act.3=Or move the key into a vault that provides an SSH agent (some password managers do), and delete the file.
+SEC-SSH-KEYS.nopass.act.4=Delete the keys you no longer use, and revoke them where they were authorised: remove the matching public key from ~/.ssh/authorized_keys on the servers, or from your account settings on code hosting sites.
+SEC-SSH-KEYS.nopass.caution=Keep the passphrase in a password manager: a forgotten passphrase makes the key unusable, and you would have to create and install a new one. Before deleting a key, make sure no server is reachable only with it.
+SEC-SSH-KEYS.ev.1=Unprotected keys
+SEC-SSH-KEYS.ok.title={n} SSH private key file(s), none stored unprotected
+SEC-SSH-KEYS.none.title=No SSH private key file in {dir}
+
+# ---- SEC-SSH-FIDO ----
+SEC-SSH-FIDO.info.title=Hardware-backed (FIDO) SSH key(s)
+SEC-SSH-FIDO.info.impact=These key files are useless without the physical security key, so no passphrase is required.
+SEC-SSH-FIDO.ev.1=FIDO keys
+
+# ---- SEC-SSH-PERMS ----
+SEC-SSH-PERMS.dir.title={dir} has permissions {mode} (expected 700)
+SEC-SSH-PERMS.dir.impact=Other accounts on this computer can look into your SSH folder: names of your keys, list of known servers, connection settings.
+SEC-SSH-PERMS.dir.act.1=Makes the folder accessible to you only. Run it in your own session, without sudo. Can be undone with 'chmod {mode} ~/.ssh'.
+SEC-SSH-PERMS.keys.title=SSH private key(s) readable by others
+SEC-SSH-PERMS.keys.impact=Other accounts on this computer can read these private keys and use them in your place. SSH itself also refuses to use a private key that others can read.
+SEC-SSH-PERMS.keys.act.1=Shows the files of your SSH folder and their permissions. Read-only.
+SEC-SSH-PERMS.keys.act.2=Makes a key readable by you only (replace <key-file> with a name from the list below). Run it in your own session, without sudo.
+SEC-SSH-PERMS.ev.1=Keys and permissions
+
+# ---- SEC-SSH-INVENTORY ----
+SEC-SSH-INVENTORY.info.title=Inventory of SSH private key files (review for obsolete ones)
+SEC-SSH-INVENTORY.info.impact=Each key opens access somewhere (servers, code hosting). A forgotten key still works for anyone who gets a copy of it.
+SEC-SSH-INVENTORY.info.act.1=Shows the fingerprint and type of a key (replace <key-file> with a name from the list below), to find out where it is used. Shows nothing secret. Read-only.
+SEC-SSH-INVENTORY.info.act.2=Delete the keys for servers or services that no longer exist, and revoke them where they were authorised (authorized_keys on the server, account settings on code hosting sites).
+SEC-SSH-INVENTORY.info.caution=A deleted key cannot be recovered. Before deleting one, make sure no server is reachable only with it.
+SEC-SSH-INVENTORY.ev.1=Keys (name, type, protection, mode, date)
+
+# ---- SEC-HOME-PERMS ----
+SEC-HOME-PERMS.warn.title=Home directory {home} is accessible to other users ({mode})
+SEC-HOME-PERMS.warn.impact=Other accounts and services on this computer can browse your personal files. Ubuntu's default is 750: only you and your group.
+SEC-HOME-PERMS.warn.act.1=Shows the permissions of your home folder. Read-only.
+SEC-HOME-PERMS.warn.act.2=Closes your home folder to other accounts (Ubuntu's default). Run it in your own session, without sudo. Can be undone with 'chmod {mode} ~'.
+SEC-HOME-PERMS.warn.caution=If a service must read files in your home folder (a web server publishing ~/public_html, a shared folder), it will no longer be able to: check it after the change.

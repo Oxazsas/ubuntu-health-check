@@ -1,0 +1,161 @@
+# Messages of lib/checks/30-apt.sh. Format and rules: see common.lang.
+
+section.30-apt=APT packages and repositories
+
+# ---- APT-LISTS-AGE ----
+APT-LISTS-AGE.warn.title=Package lists are {days} days old
+APT-LISTS-AGE.warn.impact=The package lists tell the computer which updates exist. They have not been refreshed for a long time, so the results below may be out of date, and automatic updates are probably not running: security fixes are not arriving.
+APT-LISTS-AGE.warn.act.1=Downloads the current package lists. Changes no installed package. Run the audit again afterwards.
+APT-LISTS-AGE.warn.act.2=Shows when the daily refresh of the package lists last ran and when it runs next. Read-only.
+APT-LISTS-AGE.warn.caution=On a computer that is rarely switched on, or often offline, old lists are expected. If they stay old while the computer is used every day, check the automatic updates findings below.
+APT-LISTS-AGE.ok.title=Package lists refreshed {days} day(s) ago
+APT-LISTS-AGE.partial.1=package list age unknown (no Release files in /var/lib/apt/lists)
+
+# ---- APT-UPGRADES / APT-SECURITY-UPGRADES ----
+APT-UPGRADES.partial.1=pending upgrades not checked ('apt list' failed)
+APT-SECURITY-UPGRADES.warn.title={n} security update(s) pending ({total} upgrades in total)
+APT-SECURITY-UPGRADES.warn.impact=Security fixes are available but not installed. Until they are, this computer stays exposed to the problems they fix. They are normally installed automatically within a day.
+APT-SECURITY-UPGRADES.warn.act.1=Lists the updates waiting to be installed. Read-only.
+APT-SECURITY-UPGRADES.warn.act.2=Installs the pending updates. apt shows the list and asks for confirmation first; it never removes packages with this command.
+APT-SECURITY-UPGRADES.warn.act.3=If security updates keep piling up, check the automatic updates findings below (unattended-upgrades).
+APT-SECURITY-UPGRADES.warn.caution=Some updates (kernel, core libraries) only take effect after a restart: the audit will then report a pending reboot.
+APT-SECURITY-UPGRADES.ev.1=apt list --upgradable
+APT-UPGRADES.info.title={n} non-security upgrade(s) pending
+APT-UPGRADES.info.impact=These updates bring bug fixes and improvements, not security fixes. Nothing urgent: install them when it suits you.
+APT-UPGRADES.info.act.1=Installs the pending updates. apt shows the list and asks for confirmation first; it never removes packages with this command.
+APT-UPGRADES.ev.1=apt list --upgradable
+APT-UPGRADES.ok.title=No pending upgrades
+
+# ---- APT-PHASED ----
+APT-PHASED.info.title={n} upgrade(s) deferred by phased updates
+APT-PHASED.info.impact=This is normal. Ubuntu releases some updates gradually, to a growing share of computers, so that a faulty update can be stopped early. They will be installed automatically once this computer is included. Nothing to do.
+APT-PHASED.ev.1=Deferred packages (apt-get -s upgrade)
+
+# ---- APT-HELD ----
+APT-HELD.warn.title={n} package(s) on hold (never upgraded)
+APT-HELD.warn.impact=A package on hold is never updated, not even for security fixes. A hold is sometimes set on purpose, but a forgotten one leaves known problems unfixed.
+APT-HELD.warn.act.1=Lists the packages on hold. Read-only.
+APT-HELD.warn.act.2=Removes the hold on one package (replace <package> with its name), so that it is updated again. Can be undone with 'sudo apt-mark hold <package>'.
+APT-HELD.warn.caution=Before removing a hold, try to find out why it was set: a hold often protects a program that breaks with a newer version (graphics drivers, for example).
+APT-HELD.ev.1=Held packages
+
+# ---- APT-STUCK-VERSION ----
+APT-STUCK-VERSION.warn.title={n} package(s) stuck on a version from a removed or disabled repository
+APT-STUCK-VERSION.warn.impact=These packages come from a source that is no longer configured, often a PPA (a personal repository) or a vendor repository disabled by a release upgrade. Ubuntu offers another version, but the installed version number is often higher, so apt never replaces it: these packages receive no more updates.
+APT-STUCK-VERSION.warn.act.1=Shows the installed version and the versions offered by your repositories (replace <package> with a name from the list below). Read-only.
+APT-STUCK-VERSION.warn.act.2=Shows what going back to Ubuntu's version would change. Simulation only: nothing is installed.
+APT-STUCK-VERSION.warn.act.3=Installs Ubuntu's version in place of the stuck one. To undo it, the old version would have to be installed again by hand.
+APT-STUCK-VERSION.warn.caution=Read the simulation: if it removes other packages, stop. Going back to an older version can lose features added by the third-party version; if you still need them, re-enable that vendor's repository for your release instead.
+APT-STUCK-VERSION.ev.1=Installed vs available versions (apt-cache policy)
+
+# ---- APT-OBSOLETE ----
+APT-OBSOLETE.partial.1=installed package origins not checked ('apt list --installed' failed)
+APT-OBSOLETE.warn.title={n} package(s) no longer available from any repository
+APT-OBSOLETE.warn.impact=These packages will never receive updates, including security fixes. They are usually leftovers of a previous release, a .deb file installed by hand, or packages from a removed repository.
+APT-OBSOLETE.warn.act.1=Shows what removing a package (replace <package> with a name from the list below) would remove with it, including its settings. Simulation only.
+APT-OBSOLETE.warn.act.2=For a library renamed in newer releases (names ending in t64 since Ubuntu 24.04), shows whether its successor exists. Installing the successor replaces the old one cleanly. Read-only.
+APT-OBSOLETE.warn.act.3=Removes the package and its system-wide settings. Hard to undo: no repository offers it any more.
+APT-OBSOLETE.warn.caution=Do not remove these packages blindly: other packages may need them. Always simulate first, and stop if ubuntu-desktop, ubuntu-desktop-minimal or other packages that keep the desktop installed appear in the list. Keep a copy of a .deb you installed by hand if you may need it again.
+APT-OBSOLETE.ev.1=Obsolete packages
+APT-OBSOLETE.ok.title=Every installed package version is available from a configured repository
+
+# ---- APT-OBSOLETE-KERNEL ----
+APT-OBSOLETE-KERNEL.info.title={n} obsolete kernel-related package(s)
+APT-OBSOLETE-KERNEL.info.impact=Old kernels, kernel headers and kernel metapackages from earlier releases. They take disk space and receive no updates. Nothing urgent if the kernel metapackage finding above is OK.
+APT-OBSOLETE-KERNEL.info.act.1=Shows what removing the obsolete kernel metapackage (replace <package> with its name from the list below) would remove. Simulation only. If the list is right, run it again without --simulate.
+APT-OBSOLETE-KERNEL.info.act.2=Then lists the old kernels no longer needed that apt would remove. Simulation only. If the list is right, run it again without --simulate.
+APT-OBSOLETE-KERNEL.info.caution=Do this only if the kernel metapackage finding above is OK, and once the current kernel has been working well for a while. Stop if a simulation removes the kernel you are running or ubuntu-desktop.
+APT-OBSOLETE-KERNEL.ev.1=Obsolete kernel packages
+
+# ---- APT-RESIDUAL ----
+APT-RESIDUAL.info.title={n} removed package(s) with leftover configuration files
+APT-RESIDUAL.info.impact=These packages were removed, but their system-wide settings stayed behind. Harmless, it only clutters the system.
+APT-RESIDUAL.info.act.1=Lists the leftover settings that would be deleted. Simulation only. Keep the quotes around ~c.
+APT-RESIDUAL.info.act.2=Deletes those leftover settings. Cannot be undone: a package installed again later starts with its default settings.
+APT-RESIDUAL.info.caution=Review the list first. Keep the leftovers of a package you plan to install again with your own settings.
+APT-RESIDUAL.ev.1=Packages in 'rc' state
+
+# ---- APT-REPO-DISABLED ----
+APT-REPO-DISABLED.info.title=Disabled third-party repository entries: {n}
+APT-REPO-DISABLED.info.impact=A release upgrade disables third-party repositories. Packages installed from them stop receiving updates (see the obsolete or stuck packages above).
+APT-REPO-DISABLED.info.act.1=If you still use these packages, check on the vendor's website how to enable its repository for your current release.
+APT-REPO-DISABLED.info.act.2=If you no longer use them, remove the packages, then delete the disabled entry from the file shown below.
+APT-REPO-DISABLED.ev.1=Disabled entries (file, URI, suite)
+
+# ---- APT-REPO-LEFTOVER ----
+APT-REPO-LEFTOVER.info.title={n} leftover file(s) in sources.list.d
+APT-REPO-LEFTOVER.info.impact=Backups created by release upgrades or manual edits. apt ignores them: they do no harm, but make the repository settings harder to read.
+APT-REPO-LEFTOVER.info.act.1=Lists the repository files, active ones and leftovers. Read-only.
+APT-REPO-LEFTOVER.info.act.2=Deletes one leftover file (replace <file> with a name from the list below). Cannot be undone.
+APT-REPO-LEFTOVER.info.caution=Before deleting a leftover, compare it with the active file of the same name: it may contain an entry you still need.
+APT-REPO-LEFTOVER.ev.1=Leftover files
+
+# ---- APT-REPO-THIRDPARTY ----
+APT-REPO-THIRDPARTY.info.title=Enabled third-party repository entries: {n}
+APT-REPO-THIRDPARTY.info.impact=Each of these repositories can install or replace any package with full administrator rights. A repository you no longer use, or whose vendor you do not trust, is a needless risk.
+APT-REPO-THIRDPARTY.info.act.1=Go through the list below and keep only the vendors you trust and still use.
+APT-REPO-THIRDPARTY.ev.1=Enabled third-party repositories
+
+# ---- APT-REPO-SUITE ----
+APT-REPO-SUITE.crit.title=Official Ubuntu repositories from another release are enabled
+APT-REPO-SUITE.crit.impact=Your system takes packages from two Ubuntu releases at once. This breaks dependencies between packages, and the next update can partly upgrade or downgrade the system.
+APT-REPO-SUITE.crit.act.1=In each file listed below, replace the release name with {codename} (for example with 'sudo nano' followed by the file name).
+APT-REPO-SUITE.crit.act.2=Downloads the package lists again with the corrected settings. Changes no installed package.
+APT-REPO-SUITE.crit.act.3=Shows the repositories now in use, to check that only {codename} remains. Read-only.
+APT-REPO-SUITE.crit.caution=Do not install or update packages before this is fixed. Keep a copy of each file before editing it, outside /etc/apt/sources.list.d. If packages from the other release are already installed, ask for help before going further.
+APT-REPO-SUITE.ev.1=Mismatching entries
+APT-REPO-SUITE.info.title=Third-party repositories using another release name than '{codename}'
+APT-REPO-SUITE.info.impact=Some vendors publish a single set of packages for all releases: this is expected for Signal, for example. Otherwise, packages built for another release may not work well on yours.
+APT-REPO-SUITE.info.act.1=For each vendor listed below, check on its website whether it offers packages for {codename}, and switch to them if it does.
+APT-REPO-SUITE.ev.2=Entries
+
+# ---- APT-REPO-DUPLICATE ----
+APT-REPO-DUPLICATE.info.title=Repository declared more than once
+APT-REPO-DUPLICATE.info.impact=apt complains about repositories configured several times. If the copies name different signing keys (Signed-By), 'apt update' can fail, and updates stop.
+APT-REPO-DUPLICATE.info.act.1=Keep a single file per repository: remove the duplicate entry from the other files listed below. Prefer the .sources format when the vendor offers it.
+APT-REPO-DUPLICATE.info.act.2=Downloads the package lists again, to check that the warning is gone. Changes no installed package.
+APT-REPO-DUPLICATE.info.caution=Keep a copy of a file before editing it, outside /etc/apt/sources.list.d.
+APT-REPO-DUPLICATE.ev.1=Duplicates (URI suite -> files)
+
+# ---- APT-LEGACY-KEYS ----
+APT-LEGACY-KEYS.info.title=Legacy global APT keyring in use (/etc/apt/trusted.gpg)
+APT-LEGACY-KEYS.info.impact=The keys stored in this file can sign packages for any repository: a vendor's key could be used to replace Ubuntu packages. The current practice is one key per repository, named in the repository's settings (Signed-By).
+APT-LEGACY-KEYS.info.act.1=Lists the keys in the file, with their owner and fingerprint. Read-only.
+APT-LEGACY-KEYS.info.act.2=For each vendor, follow its current installation instructions, which store its key in a separate file. Then remove the old key from the global keyring.
+APT-LEGACY-KEYS.info.caution=Before trusting a key again, check that its fingerprint matches the one published on the vendor's website. Removing a key that a repository still needs makes 'apt update' fail for that repository.
+
+# ---- APT-UNATTENDED ----
+APT-UNATTENDED.ok.title=Automatic security updates enabled
+APT-UNATTENDED.off.title=unattended-upgrades is installed but disabled
+APT-UNATTENDED.off.impact=Security updates are not installed automatically. They only arrive when someone installs them by hand, so the computer can stay exposed for weeks.
+APT-UNATTENDED.off.act.1=Shows the setting that turns automatic updates on ("1") or off ("0"). Read-only.
+APT-UNATTENDED.off.act.2=Asks whether to install security updates automatically: answer Yes. Can be undone by running it again and answering No.
+APT-UNATTENDED.missing.title=unattended-upgrades is not installed
+APT-UNATTENDED.missing.impact=No program installs security updates automatically. They only arrive when someone installs them by hand, so the computer can stay exposed for weeks.
+APT-UNATTENDED.missing.act.1=Shows whether unattended-upgrades is offered by your repositories. Read-only.
+APT-UNATTENDED.missing.act.2=Installs unattended-upgrades, which then installs security updates every day. Can be undone by removing it.
+
+# ---- APT-UNATTENDED-LASTRUN ----
+APT-UNATTENDED-LASTRUN.warn.title=Last unattended-upgrades run was {days} days ago ({date})
+APT-UNATTENDED-LASTRUN.warn.impact=Automatic updates should run every day. They have not run for more than a week, so recent security fixes are probably missing.
+APT-UNATTENDED-LASTRUN.warn.act.1=Shows when the daily update task last ran and when it runs next. Read-only.
+APT-UNATTENDED-LASTRUN.warn.act.2=Shows the end of the automatic updates log. Read-only.
+APT-UNATTENDED-LASTRUN.warn.caution=On a computer that is rarely switched on, this is expected: the task runs at the next start-up.
+APT-UNATTENDED-LASTRUN.partial.1=unattended-upgrades log not readable (run with sudo)
+
+# ---- APT-UNATTENDED-ERRORS ----
+APT-UNATTENDED-ERRORS.warn.title=Recent errors in the unattended-upgrades log
+APT-UNATTENDED-ERRORS.warn.impact=Some automatic updates may have failed. The packages concerned stay on their old version, possibly without their security fixes.
+APT-UNATTENDED-ERRORS.warn.act.1=Shows the end of the automatic updates log, around the messages below. Read-only.
+APT-UNATTENDED-ERRORS.warn.act.2=Runs the automatic updates in test mode and explains each decision: packages are downloaded but nothing is installed.
+APT-UNATTENDED-ERRORS.warn.act.3=Look in the other findings of this section for the package named in the messages (on hold, stuck, obsolete): fixing that finding usually fixes the error.
+APT-UNATTENDED-ERRORS.warn.caution=A single error after a power cut or a network loss is often harmless: run the audit again after the next daily run before changing anything.
+APT-UNATTENDED-ERRORS.ev.1=Last errors/warnings
+
+# ---- APT-PRO-STATUS ----
+APT-PRO-STATUS.partial.1=pro security-status skipped (would write logs as root; run via sudo from a regular account)
+APT-PRO-STATUS.info.title=Security coverage summary (pro security-status)
+APT-PRO-STATUS.info.impact=Ubuntu publishes security fixes for its main packages (Main and Restricted). Packages from Universe and Multiverse only get fixes from the community, and packages from third parties or no longer available get none from Ubuntu.
+APT-PRO-STATUS.info.act.1=Shows the full summary, with the number of packages in each group. Read-only.
+APT-PRO-STATUS.info.act.2=This computer is not attached to Ubuntu Pro. Ubuntu Pro (free for personal use on up to 5 machines) adds security fixes for Universe packages and kernel livepatching (kernel fixes applied without restarting). It is optional.
+APT-PRO-STATUS.ev.1=pro security-status

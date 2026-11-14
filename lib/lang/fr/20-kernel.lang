@@ -1,0 +1,61 @@
+# Messages de lib/checks/20-kernel.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.20-kernel=Noyau
+
+# ---- KRN-NONE ----
+KRN-NONE.info.title=Aucun paquet de noyau de la distribution n'est installé
+KRN-NONE.info.impact=C'est normal dans un conteneur, sous WSL ou sur un système dont le noyau est fourni par quelqu'un d'autre (un hébergeur, par exemple). Les contrôles du noyau sont ignorés : ses mises à jour sont gérées en dehors de ce système.
+
+# ---- KRN-META ----
+KRN-META.none.title=Aucun métapaquet de noyau installé : les nouveaux noyaux ne seront jamais installés
+KRN-META.none.impact=Ubuntu installe chaque nouveau noyau par l'intermédiaire d'un petit paquet, appelé métapaquet, dont le seul rôle est d'amener le noyau le plus récent. Sans lui, le noyau (le cœur du système) reste à sa version actuelle et ne reçoit plus de correctifs de sécurité, alors que les autres mises à jour continuent d'arriver.
+KRN-META.none.act.1=Indique si linux-generic, le métapaquet de noyau standard, est proposé par vos dépôts. Lecture seule.
+KRN-META.none.act.2=Montre ce que l'installation de linux-generic ajouterait ou retirerait. Simple simulation : rien n'est installé.
+KRN-META.none.act.3=Installe linux-generic, qui amène le noyau le plus récent et le tient à jour. Réversible en le retirant, mais gardez-le : c'est lui qui apporte les correctifs du noyau.
+KRN-META.none.caution=Si la simulation retire des paquets, arrêtez-vous et demandez de l'aide. Si cet ordinateur utilisait un noyau dont le nom contient « hwe » (prise en charge du matériel récent), installez plutôt le métapaquet correspondant, par exemple linux-generic-hwe-24.04 sous Ubuntu 24.04. Un nouveau noyau n'est utilisé qu'après un redémarrage.
+KRN-META.dead.title=Le métapaquet du noyau n'est plus proposé par aucun dépôt : les mises à jour du noyau sont arrêtées
+KRN-META.dead.impact=Le petit paquet qui amène les nouveaux noyaux (ici {packages}) appartient à une version précédente d'Ubuntu : plus aucun nouveau noyau n'arrive. Le noyau ne reçoit plus de correctifs de sécurité. Les autres paquets continuent de se mettre à jour, ce qui masque le problème.
+KRN-META.dead.act.1=Indique si linux-generic, le métapaquet de noyau standard de votre version, est proposé par vos dépôts. Lecture seule.
+KRN-META.dead.act.2=Montre ce que l'installation de linux-generic ajouterait ou retirerait. Simple simulation : rien n'est installé.
+KRN-META.dead.act.3=Installe linux-generic, qui amène le noyau le plus récent de votre version et le tient à jour. Réversible en le retirant, mais gardez-le : c'est lui qui apporte les correctifs du noyau.
+KRN-META.dead.act.4=Redémarrez l'ordinateur, puis vérifiez que tout fonctionne normalement avec le nouveau noyau (affichage, réseau, son).
+KRN-META.dead.act.5=Montre ce que retirerait la suppression de l'ancien métapaquet. Simple simulation. Si la liste vous convient, relancez la même commande sans --simulate.
+KRN-META.dead.caution=Ne retirez l'ancien métapaquet qu'une fois l'ordinateur redémarré correctement sur le nouveau noyau. Si une simulation retire autre chose que d'anciens paquets du noyau, en particulier ubuntu-desktop ou ubuntu-desktop-minimal (les paquets qui maintiennent le bureau installé), arrêtez-vous. Si le nom de l'ancien métapaquet contient « hwe », installez celui de votre version au lieu de linux-generic (par exemple linux-generic-hwe-24.04).
+KRN-META.ev.1=Métapaquet(s) de noyau obsolète(s)
+KRN-META.ok.title=Métapaquet de noyau disponible : {packages}
+
+# ---- KRN-META-LEFTOVER ----
+KRN-META-LEFTOVER.info.title=Un ancien métapaquet de noyau est encore installé : {packages}
+KRN-META-LEFTOVER.info.impact=Ce reste d'une version précédente d'Ubuntu n'apporte plus rien. Il maintient un ancien noyau installé, qui occupe de la place sur le disque. Rien d'urgent : votre métapaquet de noyau actuel est en bon état.
+KRN-META-LEFTOVER.info.act.1=Montre ce que retirerait la suppression de l'ancien métapaquet. Simple simulation.
+KRN-META-LEFTOVER.info.act.2=Retire l'ancien métapaquet. Réversible seulement tant que le paquet peut encore être téléchargé : il n'est peut-être plus proposé.
+KRN-META-LEFTOVER.info.act.3=Liste les paquets devenus inutiles ensuite (en général l'ancien noyau) qu'apt retirerait. Simple simulation. Si la liste vous convient, relancez la commande sans --simulate.
+KRN-META-LEFTOVER.info.caution=Ne le faites qu'une fois votre noyau actuel utilisé sans problème depuis un moment. Lisez chaque simulation, et arrêtez-vous si elle retire ubuntu-desktop, ubuntu-desktop-minimal ou le noyau en cours d'utilisation.
+
+# ---- KRN-RUNNING ----
+KRN-RUNNING.ok.title=Le noyau utilisé est le plus récent des noyaux installés ({running})
+KRN-RUNNING.old.title=Le noyau utilisé ({running}) n'est pas le plus récent des noyaux installés ({latest})
+KRN-RUNNING.old.impact=Un noyau plus récent est installé mais pas encore utilisé. Ses correctifs, souvent de sécurité, ne s'appliquent qu'après un redémarrage.
+KRN-RUNNING.old.act.1=Enregistrez votre travail, puis redémarrez l'ordinateur depuis le menu du système quand cela vous arrange.
+KRN-RUNNING.old.act.2=Après le redémarrage, affiche la version du noyau utilisé : ce doit être la plus récente. Lecture seule.
+KRN-RUNNING.old.caution=Si l'ordinateur ne démarre pas correctement avec le nouveau noyau, choisissez le précédent dans le menu « Options avancées pour Ubuntu » au démarrage (maintenez Maj ou appuyez sur Échap pour l'afficher), puis relancez l'audit.
+KRN-RUNNING.foreign.title=Le noyau utilisé ({running}) ne provient d'aucun paquet installé
+KRN-RUNNING.foreign.impact=Le noyau utilisé a été compilé à la main, ou il est fourni par l'hôte d'une machine virtuelle ou par quelqu'un d'autre. Les mises à jour du noyau Ubuntu installées sur ce système ne le concernent peut-être pas.
+KRN-RUNNING.foreign.act.1=Si vous n'avez pas mis en place ce noyau vous-même, demandez à la personne qui gère cette machine (hébergeur, administrateur) comment il reçoit ses correctifs de sécurité.
+
+# ---- KRN-PENDING ----
+KRN-PENDING.warn.title=Un noyau plus récent ({version}) est disponible mais pas installé
+KRN-PENDING.warn.impact=Vos dépôts proposent un noyau plus récent par l'intermédiaire de {package}, mais il n'a pas été installé. Tant qu'il ne l'est pas, le noyau ne bénéficie pas de ses correctifs.
+KRN-PENDING.warn.act.1=Liste les mises à jour en attente d'installation. Lecture seule.
+KRN-PENDING.warn.act.2=Affiche la version installée et la version disponible du métapaquet du noyau. Lecture seule.
+KRN-PENDING.warn.act.3=Installe les mises à jour en attente, dont le nouveau noyau. apt affiche la liste et demande confirmation avant de commencer ; cette commande ne retire jamais de paquet.
+KRN-PENDING.warn.caution=Si le nouveau noyau figure parmi les mises à jour différées par le déploiement progressif (voir la section APT), c'est normal : il sera installé d'ici quelques jours. Un nouveau noyau n'est utilisé qu'après un redémarrage.
+
+# ---- KRN-OLD ----
+KRN-OLD.info.title={n} images de noyau installées
+KRN-OLD.info.impact=Les anciens noyaux occupent de la place dans /boot et /lib/modules. Quand /boot est plein, les mises à jour du noyau échouent. Les noyaux en trop sont souvent des restes d'un ancien métapaquet de noyau.
+KRN-OLD.info.act.1=Indique le taux de remplissage de /boot. Lecture seule.
+KRN-OLD.info.act.2=Liste les paquets devenus inutiles (souvent d'anciens noyaux) qu'apt retirerait. Il garde normalement le noyau en cours et le précédent. Simple simulation : rien n'est retiré.
+KRN-OLD.info.act.3=Retire ces paquets. Un noyau retiré peut être réinstallé tant qu'Ubuntu le propose encore.
+KRN-OLD.info.caution=Lisez d'abord la liste affichée par la simulation, et arrêtez-vous si elle contient le noyau en cours d'utilisation ou ubuntu-desktop. S'il reste d'anciens noyaux après cela, consultez les résultats sur le métapaquet du noyau plus haut.
+KRN-OLD.ev.1=Images de noyau installées

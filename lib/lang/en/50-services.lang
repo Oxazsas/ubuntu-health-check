@@ -1,0 +1,36 @@
+# Messages of lib/checks/50-services.sh. Format and rules: see common.lang.
+# A "unit" is anything systemd (the program that starts and supervises the
+# system's services) manages: a service, a scheduled task, a mount...
+
+section.50-services=Services
+
+# ---- SVC-ALL ----
+SVC-ALL.partial.1=systemd is not the running init system (container?), service checks skipped
+
+# ---- SVC-FAILED ----
+SVC-FAILED.warn.title={n} failed system unit(s)
+SVC-FAILED.warn.impact=systemd is the program that starts and watches the system's services; each service or task it manages is called a unit. A failed unit did not start or stopped with an error: what it provides (printing, a network share, a backup...) may not work. It can also be a harmless leftover of software you no longer use.
+SVC-FAILED.warn.act.1=Shows what the unit is, its state and its last messages. Read-only.
+SVC-FAILED.warn.act.2=Shows all the messages of the unit since the computer started, to find the cause of the error. Read-only.
+SVC-FAILED.warn.act.3=Once the cause is fixed, the unit leaves this list the next time it starts successfully (at the latest at the next restart of the computer).
+SVC-FAILED.warn.caution=Do not disable or remove a unit you do not know before finding out what it does: search for its name first. Some units are needed to start the computer.
+SVC-FAILED.ev.1=Failed units
+SVC-FAILED.ok.title=No failed system unit
+SVC-FAILED.partial.1=failed units not listed (systemctl failed)
+
+# ---- SVC-USER-FAILED ----
+SVC-USER-FAILED.warn.title={n} failed user unit(s)
+SVC-USER-FAILED.warn.impact=These units are services or tasks that systemd starts for your session only (not for the whole system). A failed one did not start or stopped with an error: the program it belongs to may not work as expected.
+SVC-USER-FAILED.warn.act.1=Shows what the unit is, its state and its last messages. Read-only.
+SVC-USER-FAILED.warn.act.2=Shows all the messages of the unit since the computer started, to find the cause of the error. Read-only.
+SVC-USER-FAILED.warn.act.3=Once the cause is fixed, the unit leaves this list the next time it starts successfully (at the latest at your next login).
+SVC-USER-FAILED.ev.1=Failed user units
+
+# ---- SVC-NETWORK ----
+SVC-NETWORK.info.title={n} network-facing service(s) enabled at boot — confirm each is still needed
+SVC-NETWORK.info.impact=Each of these services starts with the computer and can accept connections from other machines. A service started once for a test and then forgotten can stay open for years, and every open service is a way in if it has a flaw.
+SVC-NETWORK.info.act.1=Shows what the service is, whether it is running and its last messages. Read-only.
+SVC-NETWORK.info.act.2=Stops the service now and no longer starts it at boot, if you no longer use it. Can be undone: 'sudo systemctl enable --now' followed by the same name starts it again.
+SVC-NETWORK.info.caution=Compare with the listening ports in the 'Network exposure' section (NET-LISTEN): they show which of these services really accept connections. If you connect to this computer remotely, do not disable the service you connect with (ssh, remote desktop): you would lose access.
+SVC-NETWORK.ev.1=Enabled services (current state)
+SVC-NETWORK.ok.title=No common network-facing service enabled at boot

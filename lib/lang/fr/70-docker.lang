@@ -1,0 +1,47 @@
+# Messages de lib/checks/70-docker.sh. Format et règles : voir lib/lang/en/common.lang.
+# Les noms de conteneurs peuvent être masqués (--sanitize) : jamais dans un
+# titre, une conséquence ou une commande ; ils restent dans la preuve.
+
+section.70-docker=Docker
+
+# ---- DKR-ABSENT ----
+DKR-ABSENT.info.title=Docker n'est pas installé
+DKR-ABSENT.info.impact=Rien à vérifier dans cette section.
+
+# ---- DKR-REPO ----
+DKR-REPO.warn.title={pkg} est installé mais aucun dépôt configuré ne le fournit
+DKR-REPO.warn.impact=Docker ne reçoit plus de mises à jour, correctifs de sécurité compris. Le dépôt qui le fournissait a sans doute été retiré, ou désactivé par une mise à niveau de version.
+DKR-REPO.warn.act.1=Affiche la version installée et les dépôts qui proposent ce paquet (aucun ici). Lecture seule.
+DKR-REPO.warn.act.2=Liste les fichiers des dépôts supplémentaires. Un dépôt désactivé par une mise à niveau de version a souvent un fichier renommé ou des lignes mises en commentaire. Lecture seule.
+DKR-REPO.warn.act.3=Remettez en place le dépôt correspondant à votre version d'Ubuntu : pour docker-ce, suivez les instructions d'installation de docs.docker.com ; pour docker.io, le paquet vient des dépôts d'Ubuntu eux-mêmes (universe).
+DKR-REPO.warn.act.4=Télécharge à nouveau les listes de paquets disponibles, y compris celle du dépôt remis en place. Ne modifie aucun paquet installé.
+DKR-REPO.warn.act.5=Met ce paquet à jour vers la version désormais proposée, sans rien installer d'autre.
+DKR-REPO.warn.caution=Avant de faire confiance à un dépôt remis en place, vérifiez que l'empreinte de sa clé de signature correspond à celle publiée par Docker. La mise à jour redémarre le service Docker : les conteneurs sans politique de redémarrage restent arrêtés et doivent être relancés.
+
+# ---- DKR-UPDATE ----
+DKR-UPDATE.info.title=Mise à jour de Docker disponible ({installed} -> {candidate})
+DKR-UPDATE.info.impact=Une version plus récente de Docker est proposée. L'installer apporte les derniers correctifs, mais redémarre le service Docker, donc tous les conteneurs.
+DKR-UPDATE.info.act.1=Liste les conteneurs en marche, pour savoir lesquels vérifier après la mise à jour. Lecture seule (ajoutez sudo si vous n'êtes pas dans le groupe docker).
+DKR-UPDATE.info.act.2=Met Docker à jour vers la version proposée, sans rien installer d'autre.
+DKR-UPDATE.info.caution=Les conteneurs sans politique de redémarrage restent arrêtés après la mise à jour : relancez-les avec 'docker start <container>'. Avant un passage à une nouvelle version majeure, vérifiez que les outils qui dialoguent avec Docker (interfaces de gestion, scripts) la prennent en charge.
+DKR-UPDATE.ok.title={pkg} {installed} est la dernière version disponible
+
+# ---- DKR-GROUP ----
+DKR-GROUP.info.title=Membres du groupe « docker » : {members}
+DKR-GROUP.info.impact=Faire partie du groupe docker revient à être root (l'administrateur) sans taper de mot de passe : tout programme lancé sous ces comptes peut prendre le contrôle de l'ordinateur.
+DKR-GROUP.info.act.1=Affiche les membres du groupe docker. Lecture seule.
+DKR-GROUP.info.act.2=Sur un ordinateur personnel dont vous êtes le seul utilisateur, c'est acceptable. Là où tourne du code auquel vous ne faites pas entièrement confiance (scripts, agents d'IA, dépendances de projets), envisagez Docker en mode rootless, qui fonctionne sans droits d'administrateur (voir docs.docker.com).
+DKR-GROUP.info.act.3=Retire un compte du groupe docker. Prend effet à sa prochaine connexion. Réversible avec 'sudo usermod -aG docker <user>'.
+DKR-GROUP.info.caution=Un compte retiré du groupe doit passer par sudo pour chaque commande docker.
+
+# ---- DKR-EXPOSED ----
+DKR-EXPOSED.warn.title=Des conteneurs en marche publient des ports sur toutes les interfaces
+DKR-EXPOSED.warn.impact=Docker écrit ses propres règles de pare-feu et contourne ufw pour les ports publiés : ces conteneurs sont joignables par les autres machines du réseau, même pare-feu activé.
+DKR-EXPOSED.warn.act.1=Liste les conteneurs en marche et leurs ports publiés. Lecture seule (ajoutez sudo si vous n'êtes pas dans le groupe docker).
+DKR-EXPOSED.warn.act.2=Publiez le port sur 127.0.0.1 seulement : '-p 127.0.0.1:8080:80' au lieu de '-p 8080:80' avec docker run, ou '127.0.0.1:8080:80' dans les ports d'un fichier Compose. Le service n'est alors joignable que depuis cet ordinateur.
+DKR-EXPOSED.warn.act.3=Dans le dossier d'un projet Compose, applique le réglage modifié en recréant les conteneurs dont la configuration a changé.
+DKR-EXPOSED.warn.act.4=Si un conteneur doit être joignable depuis d'autres machines, protégez-le (mot de passe, accès limité à des adresses connues) et, une fois le risque accepté, ajoutez DKR-EXPOSED à IGNORE_CHECKS dans uhc.conf.
+DKR-EXPOSED.warn.caution=Recréer un conteneur conserve les données rangées dans ses volumes, mais perd ce qui a été écrit à l'intérieur du conteneur lui-même. Vérifiez où sont vos données avant d'en recréer un.
+DKR-EXPOSED.ev.1=Conteneur, ports
+DKR-EXPOSED.ok.title=Aucun conteneur en marche ne publie de port sur toutes les interfaces
+DKR-EXPOSED.partial.1=impossible d'interroger le démon Docker (arrêté, ou permission refusée : lancez avec sudo)

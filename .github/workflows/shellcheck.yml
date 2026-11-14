@@ -17,7 +17,11 @@ jobs:
       - name: Install ShellCheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Run ShellCheck (all severities, including style)
-        run: shellcheck --version && shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh
+        run: shellcheck --version && shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh
       - name: Syntax check
         # bash -n checks only its first file: loop over each one.
-        run: for f in uhc.sh lib/*.sh lib/checks/*.sh; do bash -n "$f" || exit 1; done
+        run: for f in uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh; do bash -n "$f" || exit 1; done
+      - name: Language catalogs
+        # Every key used in the code exists in English, every translation
+        # matches English (same keys, same {variables}), no unused key.
+        run: bash contrib/check-lang.sh

@@ -1,0 +1,93 @@
+# Messages of lib/checks/55-persistence.sh. Format and rules: see common.lang.
+# The terminal messages of --accept-jobs are not here: they stay in English.
+# Tone: a match is a prompt to verify, never a proof of infection.
+
+section.55-persistence=Persistence (scheduled and startup jobs)
+
+# ---- SVC-PERSISTENCE-SCOPE ----
+SVC-PERSISTENCE-SCOPE.partial.1=crontabs of root and other users not inspected (needs sudo)
+
+# ---- actions shared by SVC-PERSISTENCE and SVC-PERSISTENCE-NEW ----
+SVC-PERSISTENCE.source.act.crontab=Shows your own scheduled tasks (your crontab), for the jobs whose source starts with 'crontab'. Read-only.
+SVC-PERSISTENCE.source.act.crontab_user=Shows the crontab of another account: replace <user> with the name shown after 'crontab' in the list (root for the administrator account). Read-only.
+SVC-PERSISTENCE.source.act.unit=Shows the full content of a system service, with its overrides (drop-ins: files in a folder ending in .service.d that change a service). For a source such as 'systemd system/foo.service.d/override.conf', give the name of the service, here foo.service. Read-only.
+SVC-PERSISTENCE.source.act.user_unit=Same, for the sources starting with 'user systemd' (services started for your session only). Read-only.
+SVC-PERSISTENCE.source.act.file=For the other sources (files in /etc/cron.d or /etc/cron.daily, autostart entries, shell startup files such as ~/.bashrc), open the listed file with a text viewer, for example 'less' followed by its path, and look at the line shown.
+
+# ---- SVC-PERSISTENCE ----
+SVC-PERSISTENCE.warn.title={n} scheduled or startup job(s) matching persistence patterns
+SVC-PERSISTENCE.warn.impact=These jobs start again on their own (on a schedule, at start-up or at login), and their command has a shape that malicious programs often use to keep running on a computer: downloading code and running it, piping text into a shell, decoding base64 text, opening a raw network connection (/dev/tcp), a script language (python, perl...) fetching an internet address, a program started from a temporary or cache folder, or a network call every few minutes, at start-up or at login. Legitimate monitoring and keep-alive jobs match too: this is a prompt to verify, not a verdict. The reason of each match is shown in brackets in the list below.
+SVC-PERSISTENCE.warn.act.unknown=If you do not recognise a job, do not delete it straight away. First save a copy of the file or crontab it comes from, then find out where its command points and how it got there (which program or person added it, and when). If in doubt, ask someone you trust before removing anything.
+SVC-PERSISTENCE.warn.act.known=If you recognise a job, add its fingerprint (first column of the list) to the JOBS_ALLOW key of uhc.conf, separated from the others by spaces, for example JOBS_ALLOW="3ae9b353616b". It is then listed as allowed (SVC-PERSISTENCE-ALLOWED) instead of raising this warning.
+SVC-PERSISTENCE.warn.caution=A match does not prove an infection, and no match does not prove the opposite: only the command lines are read, not the scripts they start. A fingerprint covers exactly one line: any later change to that line (schedule, address, arguments) gives a new fingerprint and brings this warning back. Prefer JOBS_ALLOW to IGNORE_CHECKS, which would also hide future malicious jobs.
+SVC-PERSISTENCE.ev.1=Jobs to verify (fingerprint, source, schedule/key/line, program, reason — arguments hidden)
+SVC-PERSISTENCE.ok.title=No scheduled or startup job matches known persistence patterns ({n} commands inspected)
+
+# ---- SVC-PERSISTENCE-ALLOWED ----
+SVC-PERSISTENCE-ALLOWED.info.title={n} job(s) matching persistence patterns, allowed by JOBS_ALLOW
+SVC-PERSISTENCE-ALLOWED.info.impact=These jobs match a pattern, but their fingerprint is in JOBS_ALLOW, the list of jobs declared known in uhc.conf. That file can be edited by any program running under your account, which could add its own fingerprint: this is why allowed jobs always stay listed here.
+SVC-PERSISTENCE-ALLOWED.info.act.1=Check that you added each of these fingerprints yourself. An entry you did not add is a red flag: look at that job at its source, and remove its fingerprint from JOBS_ALLOW.
+SVC-PERSISTENCE-ALLOWED.ev.1=Allowed jobs
+
+# ---- SVC-PERSISTENCE-VENDOR ----
+SVC-PERSISTENCE-VENDOR.info.title={n} match(es) in unmodified files shipped by installed packages
+SVC-PERSISTENCE-VENDOR.info.impact=These files match a pattern, but they are byte-for-byte identical to what their package installed (checked against the package database), so they are as trustworthy as the package itself. Google Chrome's daily job, for example, decodes its repository key with base64. If such a file is modified later, it is reported as a warning.
+SVC-PERSISTENCE-VENDOR.ev.1=Packaged files
+
+# ---- SVC-PERSISTENCE-STALE-ALLOW ----
+SVC-PERSISTENCE-STALE-ALLOW.info.title=JOBS_ALLOW entries that no longer match any job: {fps}
+SVC-PERSISTENCE-STALE-ALLOW.info.impact=The jobs these fingerprints allowed were removed or changed. A changed job appears again above, with its new fingerprint. A leftover fingerprint would allow that exact line again if it came back.
+SVC-PERSISTENCE-STALE-ALLOW.info.act.1=Remove these fingerprints from the JOBS_ALLOW key of uhc.conf.
+
+# ---- SVC-PERSISTENCE-BASELINE ----
+SVC-PERSISTENCE-BASELINE.missing.title=Reference list of jobs missing although it existed: recreated from the current state
+SVC-PERSISTENCE-BASELINE.missing.impact=The reference list of scheduled and startup jobs was deleted since the previous run. Anything added in the meantime is now part of the new list without having been reviewed. A program trying to hide a job would do exactly this.
+SVC-PERSISTENCE-BASELINE.missing.act.1=Review the inventory of jobs below (SVC-SCHEDULED) carefully, and look at every entry you do not recognise at its source.
+SVC-PERSISTENCE-BASELINE.missing.act.2=Runs a full audit from the root-owned copy of the tool (alias offered by the installation wizard; see 'Full audit with sudo' in the README). Its reference list is kept in that copy, out of reach of the programs running under your account, so it is not exposed to this. The audit changes nothing on the system.
+SVC-PERSISTENCE-BASELINE.created.title=Reference list of scheduled and startup jobs created ({n} commands)
+SVC-PERSISTENCE-BASELINE.created.impact=From now on, any job that appears or changes is reported at every run, whatever its form, until you accept it with --accept-jobs.
+SVC-PERSISTENCE-BASELINE.created.act.1=Review the inventory of jobs below (SVC-SCHEDULED) once: from now on, it is considered known.
+SVC-PERSISTENCE-BASELINE.updated.title=Reference list updated: {n} change(s) accepted
+SVC-PERSISTENCE-BASELINE.updated.impact=Accepted with --accept-jobs. Changes not listed here remain pending, and are still reported.
+SVC-PERSISTENCE-BASELINE.ev.1=Accepted
+
+# ---- SVC-PERSISTENCE-NEW ----
+SVC-PERSISTENCE-NEW.warn.title={n} scheduled or startup job(s) new or changed since they were last accepted
+SVC-PERSISTENCE-NEW.warn.impact=These jobs did not exist, or were different, when the reference list was last accepted. This is reported whatever the form of the command, disguised or not: a program that wants to start again on its own has to add or change such an entry. Often it is a change you made, or software you installed.
+SVC-PERSISTENCE-NEW.warn.caution=Accept only what you have checked: anything that appears after the list you confirmed stays pending. Each acceptance is recorded in logs/uhc.log with its fingerprints; an acceptance there that you did not make is a red flag.
+SVC-PERSISTENCE-NEW.ev.1=New or changed jobs (fingerprint, source, schedule/key, program)
+SVC-PERSISTENCE-NEW.ok.title=No scheduled or startup job added or changed since the last acceptance
+# Shared by SVC-PERSISTENCE-NEW, -NEW-SHELL, -NEW-PACKAGE and -REMOVED.
+SVC-PERSISTENCE-NEW.accept.act.user=Once checked, accepts the pending changes into the reference list. Run it in a terminal, from the tool's folder (or 'uhc --accept-jobs' if you installed the aliases): it shows the exact list of changes and accepts it only after you confirm. Accepted changes are no longer reported.
+SVC-PERSISTENCE-NEW.accept.act.user_fp=Accepts only the changes whose fingerprints you give (first column of the list, separated by spaces); the others stay pending.
+SVC-PERSISTENCE-NEW.accept.act.root=Once checked, accepts the pending changes into the reference list of full audits, which is kept in the root-owned copy of the tool: uhc-root runs that copy with sudo, as for this audit. In a terminal, it shows the exact list of changes and accepts it only after you confirm. Accepted changes are no longer reported.
+SVC-PERSISTENCE-NEW.accept.act.root_fp=Accepts only the changes whose fingerprints you give (first column of the list, separated by spaces); the others stay pending.
+
+# ---- SVC-PERSISTENCE-NEW-SHELL ----
+SVC-PERSISTENCE-NEW-SHELL.info.title={n} new or changed line(s) in shell startup files
+SVC-PERSISTENCE-NEW-SHELL.info.impact=Lines were added or changed since the last acceptance in files such as ~/.bashrc, ~/.bash_aliases or ~/.profile. These files run every time you open a terminal or log in. Usually these are your own edits, or those of an installer (the aliases of this tool, for example).
+SVC-PERSISTENCE-NEW-SHELL.info.act.1=Open the listed file at the line shown (for example with 'less' followed by its path) and check that you know what the line does.
+SVC-PERSISTENCE-NEW-SHELL.ev.1=New or changed lines
+
+# ---- SVC-PERSISTENCE-NEW-PACKAGE ----
+SVC-PERSISTENCE-NEW-PACKAGE.info.title={n} job line(s) changed by package updates
+SVC-PERSISTENCE-NEW-PACKAGE.info.impact=These lines come from files shipped by installed packages, and the files are unmodified: they changed with a package update. Listed for traceability: a compromised third-party repository would show up here.
+SVC-PERSISTENCE-NEW-PACKAGE.ev.1=Changed by package updates
+
+# ---- SVC-PERSISTENCE-REMOVED ----
+SVC-PERSISTENCE-REMOVED.info.title={n} command(s) removed or changed since the last acceptance
+SVC-PERSISTENCE-REMOVED.info.impact=Listed for completeness: these commands were in the reference list and are no longer found. A changed command also appears as new.
+SVC-PERSISTENCE-REMOVED.ev.1=Removed
+
+# ---- SVC-AT-JOBS ----
+SVC-AT-JOBS.info.title={n} pending 'at' job(s)
+SVC-AT-JOBS.info.impact='at' jobs are commands scheduled to run once, at a given time. This tool does not inspect their content, because it includes the full environment of the person who created them.
+SVC-AT-JOBS.info.act.1=Lists the pending 'at' jobs with their number, date and time. With sudo, it also lists the jobs of the other accounts. Read-only.
+SVC-AT-JOBS.info.act.2=Shows the content of one job, given its number from the first command: the environment comes first, the command itself is at the end. Read-only.
+SVC-AT-JOBS.info.caution=That content can include passwords or access keys held in environment variables: do not paste it as it is into a message, or into a conversation with an assistant.
+
+# ---- SVC-SCHEDULED ----
+SVC-SCHEDULED.info.title=Scheduled and startup jobs (review for unknown or obsolete entries)
+SVC-SCHEDULED.info.impact=This is what starts on its own on this computer, found in crontabs, /etc/crontab, /etc/cron.d, the folders /etc/cron.hourly, daily, weekly and monthly, systemd services and their overrides (system and user), autostart entries, plus the systemd timers. Shell startup files are inspected too, but their lines appear in this report only when they match a pattern or change. Only the command lines are inspected, not the content of the scripts they run, and disguised commands can escape the patterns.
+SVC-SCHEDULED.info.act.1=Look for entries you do not recognise, or that belong to software you removed. For an unknown entry, look up the program name and its source before changing anything.
+SVC-SCHEDULED.ev.1=Jobs (fingerprint, source, schedule/key, program — arguments hidden)

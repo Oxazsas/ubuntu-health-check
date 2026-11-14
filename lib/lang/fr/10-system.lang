@@ -1,0 +1,63 @@
+# Messages de lib/checks/10-system.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.10-system=Système
+
+# ---- SYS-OS ----
+SYS-OS.other.title=Ce n'est pas un système Ubuntu ({name})
+SYS-OS.other.impact=Cet outil est écrit pour Ubuntu. La plupart des contrôles fonctionnent aussi sur les systèmes dérivés de Debian, mais les dates de support et certains noms de paquets peuvent être faux pour le vôtre.
+SYS-OS.other.act.1=Affiche le nom et la version de ce système. Lecture seule.
+SYS-OS.other.act.2=Lisez les autres résultats en gardant cela en tête, et vérifiez la durée de support de votre version sur le site de votre distribution.
+SYS-OS.ok.title={name}
+
+# ---- SYS-EOL ----
+SYS-EOL.ended.title=La version {codename} n'est plus prise en charge (fin du support standard)
+SYS-EOL.ended.impact=Ubuntu ne publie plus de correctifs de sécurité pour cette version, sauf si Ubuntu Pro est activé. Les failles découvertes à partir de maintenant restent ouvertes sur cet ordinateur.
+SYS-EOL.ended.act.1=Indique si Ubuntu Pro est activé. Ubuntu Pro prolonge les correctifs de sécurité des anciennes versions (gratuit pour un usage personnel, jusqu'à 5 machines). Lecture seule.
+SYS-EOL.ended.act.2=Vérifie si une mise à niveau vers une version plus récente est proposée pour cet ordinateur. Ne modifie rien.
+SYS-EOL.ended.caution=Une mise à niveau de version prend du temps et ne s'annule pas. Sauvegardez d'abord vos fichiers personnels, branchez un portable sur secteur, et faites le ménage dans les paquets obsolètes et les dépôts tiers signalés dans ce rapport : ce sont les causes habituelles d'échec.
+SYS-EOL.soon.title=Le support standard de {codename} se termine dans {days} jours
+SYS-EOL.soon.impact=Après le {date}, cette version ne reçoit plus de correctifs de sécurité. Vos programmes continuent de fonctionner, mais les failles découvertes après cette date restent ouvertes.
+SYS-EOL.soon.act.1=Vérifie si une mise à niveau vers une version plus récente est proposée pour cet ordinateur. Ne modifie rien.
+SYS-EOL.soon.act.2=Prévoyez la mise à niveau avant cette date, à un moment où vous pouvez vous passer de l'ordinateur pendant une heure ou deux.
+SYS-EOL.soon.caution=Une mise à niveau de version ne s'annule pas. Sauvegardez d'abord vos fichiers personnels, et faites le ménage dans les paquets obsolètes et les dépôts tiers signalés dans ce rapport : ce sont les causes habituelles d'échec.
+SYS-EOL.ok.title=Support standard de {codename} jusqu'au {date}
+SYS-EOL.partial.1=date de fin de support non vérifiée (ubuntu-distro-info indisponible)
+
+# ---- SYS-RELEASE ----
+SYS-RELEASE.info.title=Une version LTS plus récente est disponible ({release})
+SYS-RELEASE.info.impact=Rien d'urgent tant que votre version actuelle est prise en charge. Passer à la nouvelle LTS apporte des logiciels plus récents et repousse la fin du support.
+SYS-RELEASE.info.act.1=Avant toute mise à niveau, faites le ménage dans les paquets obsolètes et les dépôts tiers signalés dans ce rapport : ce sont les causes habituelles d'échec.
+SYS-RELEASE.info.act.2=Indique si la mise à niveau est déjà proposée pour cet ordinateur (Ubuntu la propose quelque temps après la sortie). Ne modifie rien.
+
+# ---- SYS-REBOOT ----
+SYS-REBOOT.warn.title=Un redémarrage est nécessaire pour terminer les mises à jour
+SYS-REBOOT.warn.impact=Certaines mises à jour sont installées mais pas encore utilisées, souvent des correctifs de sécurité du noyau ou de bibliothèques essentielles. Tant que l'ordinateur n'a pas redémarré, il reste exposé aux problèmes qu'elles corrigent.
+SYS-REBOOT.warn.act.1=Enregistrez votre travail, puis redémarrez l'ordinateur depuis le menu du système quand cela vous arrange.
+SYS-REBOOT.warn.caution=Fermez vos documents avant de redémarrer. Sur un ordinateur que d'autres utilisent à distance, prévenez-les : ses services s'arrêtent quelques minutes.
+SYS-REBOOT.ev.1=Paquets qui demandent le redémarrage (/var/run/reboot-required.pkgs)
+SYS-REBOOT.ok.title=Aucun redémarrage en attente
+
+# ---- SYS-TIME ----
+SYS-TIME.warn.title=L'horloge n'est pas synchronisée par NTP (fuseau horaire {tz})
+SYS-TIME.warn.impact=Une horloge qui dérive fait échouer les sites sécurisés et les mises à jour (erreurs de certificat), et fausse l'heure dans les journaux.
+SYS-TIME.warn.act.1=Indique si la synchronisation automatique de l'heure fonctionne et quel serveur de temps elle utilise. Lecture seule.
+SYS-TIME.warn.act.2=Active la synchronisation automatique de l'heure. Réversible : la même commande avec false au lieu de true la désactive.
+SYS-TIME.warn.caution=Juste après le démarrage, ou sans connexion réseau, la synchronisation peut prendre quelques minutes : relancez l'audit avant de modifier quoi que ce soit.
+SYS-TIME.ev.1=timedatectl
+SYS-TIME.ok.title=Horloge synchronisée (fuseau horaire {tz})
+SYS-TIME.partial.1=synchronisation de l'horloge non vérifiée (timedatectl indisponible ou pas de systemd)
+
+# ---- SYS-DISK ----
+SYS-DISK.crit.title=Le système de fichiers {target} est plein à {pcent}
+SYS-DISK.crit.impact=Quand {target} est plein, les mises à jour s'arrêtent en cours de route, les programmes ne peuvent plus enregistrer leurs données et le système peut devenir instable. Libérez de la place rapidement.
+SYS-DISK.warn.title=Le système de fichiers {target} est plein à {pcent}
+SYS-DISK.warn.impact=Si {target} continue de se remplir, les mises à jour et les programmes vont commencer à échouer. Libérer de la place maintenant est plus simple qu'une fois le disque plein.
+SYS-DISK.full.act.1=Liste les paquets devenus inutiles (souvent d'anciens noyaux) qu'apt retirerait. Simple simulation : rien n'est retiré.
+SYS-DISK.full.act.2=Supprime les fichiers de paquets téléchargés et conservés par apt. Sans risque : apt les télécharge à nouveau s'il en a besoin.
+SYS-DISK.full.act.3=Indique la place occupée par les journaux du système. Lecture seule.
+SYS-DISK.full.act.4=Indique la place occupée par les images, conteneurs et volumes Docker. Lecture seule.
+SYS-DISK.full.act.same=Voir les actions proposées pour {target} : elles libèrent aussi de la place ici.
+SYS-DISK.full.caution=Lisez la liste affichée par la simulation avant de lancer 'sudo apt autoremove' pour de bon, et arrêtez-vous si elle contient quelque chose dont vous vous servez. Un paquet retiré se réinstalle ; un fichier personnel supprimé ne se récupère pas.
+SYS-DISK.ok.title=Occupation des systèmes de fichiers du système sous {warn} %
+SYS-DISK.ev.1=Occupation des systèmes de fichiers du système
+SYS-DISK.partial.1=occupation des disques non lue (échec de df)

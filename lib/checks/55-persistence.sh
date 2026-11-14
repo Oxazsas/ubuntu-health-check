@@ -30,9 +30,13 @@
 # Nothing but the schedule/key and the program name reaches the report:
 # arguments often contain tokens. Each record gets a fingerprint (SHA-256 of
 # label + raw line, 12 hex digits) for JOBS_ALLOW.
+#
+# Texts: lib/lang/*/55-persistence.lang (keys SVC-PERSISTENCE*, SVC-AT-JOBS,
+# SVC-SCHEDULED, section.55-persistence). The messages of --accept-jobs in
+# the terminal stay in English, like error messages.
 # -----------------------------------------------------------------------------
 
-section "Persistence (scheduled and startup jobs)"
+section "$(t section.55-persistence)"
 
 # safe_field TEXT — replace control characters (tab, newline...) by '?'.
 safe_field() { printf '%s' "$1" | tr '\000-\037\177' '?'; }
@@ -201,7 +205,7 @@ if [[ "$IS_ROOT" == 1 ]]; then
     done
 else
     add "$(crontab -l 2>/dev/null | crontab_records "crontab ${TARGET_USER}" 0 -)"
-    partial SVC-PERSISTENCE-SCOPE "crontabs of root and other users not inspected (needs sudo)"
+    partial SVC-PERSISTENCE-SCOPE "$(t SVC-PERSISTENCE-SCOPE.partial.1)"
 fi
 for f in /etc/crontab /etc/cron.d/*; do
     [[ -f "$f" && -r "$f" && "${f##*/}" != .placeholder ]] || continue
@@ -276,31 +280,59 @@ while IFS=$'\t' read -r trig label display path cmd raw; do
 done <<<"$job_records"
 
 # ---- findings ------------------------------------------------------------------------
+# persist_source_actions — read-only commands to look at a job at its source
+# (proposed for pattern matches and for new or changed jobs). The jobs are
+# listed in the evidence, so the commands keep generic names.
+persist_source_actions() {
+    action "crontab -l" SVC-PERSISTENCE.source.act.crontab
+    [[ "$IS_ROOT" == 1 ]] && action "sudo crontab -l -u <user>" SVC-PERSISTENCE.source.act.crontab_user
+    action "systemctl cat <unit>" SVC-PERSISTENCE.source.act.unit
+    action "systemctl --user cat <unit>" SVC-PERSISTENCE.source.act.user_unit
+    action "" SVC-PERSISTENCE.source.act.file
+}
+# persist_accept_actions — how to accept pending changes into the reference
+# list: with the same privileges as this run (the reference list of root runs
+# is kept in the root-owned copy, started by the uhc-root alias).
+persist_accept_actions() {
+    if [[ "$IS_ROOT" == 1 ]]; then
+        action "uhc-root --accept-jobs" SVC-PERSISTENCE-NEW.accept.act.root
+        action "uhc-root --accept-jobs <fingerprint>" SVC-PERSISTENCE-NEW.accept.act.root_fp
+    else
+        action "./uhc.sh --accept-jobs" SVC-PERSISTENCE-NEW.accept.act.user
+        action "./uhc.sh --accept-jobs <fingerprint>" SVC-PERSISTENCE-NEW.accept.act.user_fp
+    fi
+}
+
 if [[ -n "$suspects" ]]; then
-    finding WARNING SVC-PERSISTENCE "$(grep -c . <<<"$suspects") scheduled or startup job(s) matching persistence patterns" \
-        "Download-and-execute, piping into a shell, base64 decoding, /dev/tcp, inline interpreters fetching URLs, programs run from temporary or cache directories, and network calls every few minutes, at boot or at login are common ways malware keeps itself running. Legitimate monitoring and keep-alive jobs match too: this is a prompt to verify, not a verdict. The reason is shown in brackets. Check each job at its source ('crontab -l', the listed file or unit). If you do not recognise one, save a copy before removing anything and find out where it points and how it got there. If you do recognise it, add its fingerprint (first column) to JOBS_ALLOW in uhc.conf: any later change to that line produces a new fingerprint and triggers this warning again."
-    evidence "Jobs to verify (fingerprint, source, schedule/key/line, program, reason — arguments hidden)" "${suspects%$'\n'}"
+    finding WARNING SVC-PERSISTENCE "$(t SVC-PERSISTENCE.warn.title n="$(grep -c . <<<"$suspects")")"
+    impact SVC-PERSISTENCE.warn.impact
+    persist_source_actions
+    action "" SVC-PERSISTENCE.warn.act.unknown
+    action "" SVC-PERSISTENCE.warn.act.known
+    caution SVC-PERSISTENCE.warn.caution
+    evidence "$(t SVC-PERSISTENCE.ev.1)" "${suspects%$'\n'}"
 else
-    finding OK SVC-PERSISTENCE "No scheduled or startup job matches known persistence patterns (${n_records} commands inspected)" \
-        "Sources: crontabs, /etc/crontab, /etc/cron.d, /etc/cron.{hourly,daily,weekly,monthly}, systemd services and drop-ins (system and user), autostart entries, shell startup files. Only the command lines are inspected, not the content of the scripts they run, and obfuscated commands can escape pattern matching."
+    finding OK SVC-PERSISTENCE "$(t SVC-PERSISTENCE.ok.title n="$n_records")"
 fi
 if [[ -n "$allowed" ]]; then
-    finding INFO SVC-PERSISTENCE-ALLOWED "$(grep -c . <<<"$allowed") job(s) matching persistence patterns, allowed by JOBS_ALLOW" \
-        "uhc.conf can be edited by any program running under your account. If this list contains an entry you did not add yourself, treat it as a red flag."
-    evidence "Allowed jobs" "${allowed%$'\n'}"
+    finding INFO SVC-PERSISTENCE-ALLOWED "$(t SVC-PERSISTENCE-ALLOWED.info.title n="$(grep -c . <<<"$allowed")")"
+    impact SVC-PERSISTENCE-ALLOWED.info.impact
+    action "" SVC-PERSISTENCE-ALLOWED.info.act.1
+    evidence "$(t SVC-PERSISTENCE-ALLOWED.ev.1)" "${allowed%$'\n'}"
 fi
 if [[ -n "$vendor" ]]; then
-    finding INFO SVC-PERSISTENCE-VENDOR "$(grep -c . <<<"$vendor") match(es) in unmodified files shipped by installed packages" \
-        "These files match a pattern but are byte-for-byte identical to what their package installed (checked against the package database), so they are as trustworthy as the package itself. If such a file is modified later, it is reported as a warning."
-    evidence "Packaged files" "${vendor%$'\n'}"
+    finding INFO SVC-PERSISTENCE-VENDOR "$(t SVC-PERSISTENCE-VENDOR.info.title n="$(grep -c . <<<"$vendor")")"
+    impact SVC-PERSISTENCE-VENDOR.info.impact
+    evidence "$(t SVC-PERSISTENCE-VENDOR.ev.1)" "${vendor%$'\n'}"
 fi
 stale_allow=""
 for fp in ${JOBS_ALLOW:-}; do
     [[ "$seen_fp" == *" ${fp} "* ]] || stale_allow+="${fp} "
 done
 if [[ -n "$stale_allow" ]]; then
-    finding INFO SVC-PERSISTENCE-STALE-ALLOW "JOBS_ALLOW entries that no longer match any job: ${stale_allow% }" \
-        "The job was removed or changed. Remove these fingerprints from uhc.conf (a changed job appears again above with its new fingerprint)."
+    finding INFO SVC-PERSISTENCE-STALE-ALLOW "$(t SVC-PERSISTENCE-STALE-ALLOW.info.title fps="${stale_allow% }")"
+    impact SVC-PERSISTENCE-STALE-ALLOW.info.impact
+    action "" SVC-PERSISTENCE-STALE-ALLOW.info.act.1
 fi
 
 # ---- change detection against the accepted reference list --------------------------------
@@ -344,11 +376,14 @@ drop_fps() {
 
 if ! state_do test -f "$baseline"; then
     if state_do test -f "$marker"; then
-        finding WARNING SVC-PERSISTENCE-BASELINE "Reference list of jobs missing although it existed: recreated from the current state" \
-            "The list was deleted since the previous run. Anything added in the meantime is now part of the new reference without having been reviewed. Review the inventory below carefully. A program trying to hide a job would do exactly this$([[ "$STATE_AS_ROOT" == 0 ]] && echo '; a root audit (reference kept in the root-owned installation) is not exposed to it')."
+        finding WARNING SVC-PERSISTENCE-BASELINE "$(t SVC-PERSISTENCE-BASELINE.missing.title)"
+        impact SVC-PERSISTENCE-BASELINE.missing.impact
+        action "" SVC-PERSISTENCE-BASELINE.missing.act.1
+        [[ "$STATE_AS_ROOT" == 0 ]] && action "uhc-root" SVC-PERSISTENCE-BASELINE.missing.act.2
     else
-        finding INFO SVC-PERSISTENCE-BASELINE "Reference list of scheduled and startup jobs created ($(grep -c . <<<"$current_base") commands)" \
-            "From now on, any job that appears or changes is reported at every run, whatever its form, until you accept it with --accept-jobs. Review the inventory below once: it is now considered known."
+        finding INFO SVC-PERSISTENCE-BASELINE "$(t SVC-PERSISTENCE-BASELINE.created.title n="$(grep -c . <<<"$current_base")")"
+        impact SVC-PERSISTENCE-BASELINE.created.impact
+        action "" SVC-PERSISTENCE-BASELINE.created.act.1
     fi
     printf '%s\n' "$current_base" | write_state "$baseline"
     date '+%Y-%m-%d' | write_state "$marker"
@@ -399,9 +434,9 @@ else
                 FPS=" $selected " awk -F'\t' 'index(ENVIRON["FPS"], " " $1 " ")' <<<"$added"
             } | grep . | sort -u | write_state "$baseline"
             n_sel="$(wc -w <<<"$selected")"
-            finding INFO SVC-PERSISTENCE-BASELINE "Reference list updated: ${n_sel} change(s) accepted" \
-                "Accepted with --accept-jobs. Changes not listed here remain pending."
-            evidence "Accepted" "$accepted_lines"
+            finding INFO SVC-PERSISTENCE-BASELINE "$(t SVC-PERSISTENCE-BASELINE.updated.title n="$n_sel")"
+            impact SVC-PERSISTENCE-BASELINE.updated.impact
+            evidence "$(t SVC-PERSISTENCE-BASELINE.ev.1)" "$accepted_lines"
             log_line "$(date '+%Y-%m-%dT%H:%M:%S%z') --accept-jobs: ${n_sel} change(s) accepted in ${base_mode} reference list (${base_user}): ${selected% }"
             new_jobs="$(drop_fps "$new_jobs" "$selected")"; new_shell="$(drop_fps "$new_shell" "$selected")"
             pkg_changes="$(drop_fps "$pkg_changes" "$selected")"; removed="$(drop_fps "$removed" "$selected")"
@@ -409,36 +444,45 @@ else
     fi
 
     # ---- remaining changes ----
-    accept_hint="accept them with --accept-jobs$([[ "$IS_ROOT" == 1 ]] && echo ' (with sudo, as for this run)')"
     if [[ -n "${new_jobs//[$'\n']/}" ]]; then
-        finding WARNING SVC-PERSISTENCE-NEW "$(grep -c . <<<"$new_jobs") scheduled or startup job(s) new or changed since they were last accepted" \
-            "These jobs did not exist, or were different, when the reference list was last accepted. This is reported whatever the form of the command, obfuscated or not. Check each one at its source. If they are yours, ${accept_hint}, either in a terminal (the exact list is shown before confirming) or by fingerprint."
-        evidence "New or changed jobs (fingerprint, source, schedule/key, program)" "$new_jobs"
+        finding WARNING SVC-PERSISTENCE-NEW "$(t SVC-PERSISTENCE-NEW.warn.title n="$(grep -c . <<<"$new_jobs")")"
+        impact SVC-PERSISTENCE-NEW.warn.impact
+        persist_source_actions
+        persist_accept_actions
+        caution SVC-PERSISTENCE-NEW.warn.caution
+        evidence "$(t SVC-PERSISTENCE-NEW.ev.1)" "$new_jobs"
     fi
     if [[ -n "${new_shell//[$'\n']/}" ]]; then
-        finding INFO SVC-PERSISTENCE-NEW-SHELL "$(grep -c . <<<"$new_shell") new or changed line(s) in shell startup files" \
-            "Lines added to files such as ~/.bashrc, ~/.bash_aliases or ~/.profile since the last acceptance. Usually your own edits; ${accept_hint} once checked."
-        evidence "New or changed lines" "$new_shell"
+        finding INFO SVC-PERSISTENCE-NEW-SHELL "$(t SVC-PERSISTENCE-NEW-SHELL.info.title n="$(grep -c . <<<"$new_shell")")"
+        impact SVC-PERSISTENCE-NEW-SHELL.info.impact
+        action "" SVC-PERSISTENCE-NEW-SHELL.info.act.1
+        persist_accept_actions
+        evidence "$(t SVC-PERSISTENCE-NEW-SHELL.ev.1)" "$new_shell"
     fi
     if [[ -n "${pkg_changes//[$'\n']/}" ]]; then
-        finding INFO SVC-PERSISTENCE-NEW-PACKAGE "$(grep -c . <<<"$pkg_changes") job line(s) changed by package updates" \
-            "These lines come from files that installed packages shipped and that are unmodified: they changed with a package update. Listed for traceability (a compromised third-party repository would show up here); ${accept_hint}."
-        evidence "Changed by package updates" "$pkg_changes"
+        finding INFO SVC-PERSISTENCE-NEW-PACKAGE "$(t SVC-PERSISTENCE-NEW-PACKAGE.info.title n="$(grep -c . <<<"$pkg_changes")")"
+        impact SVC-PERSISTENCE-NEW-PACKAGE.info.impact
+        persist_accept_actions
+        evidence "$(t SVC-PERSISTENCE-NEW-PACKAGE.ev.1)" "$pkg_changes"
     fi
     if [[ -n "${removed//[$'\n']/}" ]]; then
-        finding INFO SVC-PERSISTENCE-REMOVED "$(grep -c . <<<"$removed") command(s) removed or changed since the last acceptance" \
-            "Listed for completeness (a changed command also appears as new); ${accept_hint}."
-        evidence "Removed" "$removed"
+        finding INFO SVC-PERSISTENCE-REMOVED "$(t SVC-PERSISTENCE-REMOVED.info.title n="$(grep -c . <<<"$removed")")"
+        impact SVC-PERSISTENCE-REMOVED.info.impact
+        persist_accept_actions
+        evidence "$(t SVC-PERSISTENCE-REMOVED.ev.1)" "$removed"
     fi
     [[ -z "${new_jobs}${new_shell}${pkg_changes}${removed}" ]] && \
-        finding OK SVC-PERSISTENCE-NEW "No scheduled or startup job added or changed since the last acceptance"
+        finding OK SVC-PERSISTENCE-NEW "$(t SVC-PERSISTENCE-NEW.ok.title)"
 fi
 
 if have atq; then
     n_at="$(run atq | grep -c .)"
     if (( n_at > 0 )); then
-        finding INFO SVC-AT-JOBS "${n_at} pending 'at' job(s)" \
-            "One-off scheduled commands. Their content is not inspected (it includes the full environment). Review with 'atq' and 'at -c <id>'."
+        finding INFO SVC-AT-JOBS "$(t SVC-AT-JOBS.info.title n="$n_at")"
+        impact SVC-AT-JOBS.info.impact
+        action "atq" SVC-AT-JOBS.info.act.1
+        action "at -c <id>" SVC-AT-JOBS.info.act.2
+        caution SVC-AT-JOBS.info.caution
     fi
 fi
 
@@ -446,6 +490,8 @@ timers=""
 [[ -d /run/systemd/system ]] && timers="$(systemctl list-timers --all --no-legend --plain 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i ~ /\.timer$/) {print $i; break}}' | sort -u | paste -sd ' ')"
 [[ -n "$timers" ]] && all_jobs+="systemd timers: ${timers}"$'\n'
 if [[ -n "$all_jobs" ]]; then
-    finding INFO SVC-SCHEDULED "Scheduled and startup jobs (review for unknown or obsolete entries)"
-    evidence "Jobs (fingerprint, source, schedule/key, program — arguments hidden)" "${all_jobs%$'\n'}"
+    finding INFO SVC-SCHEDULED "$(t SVC-SCHEDULED.info.title)"
+    impact SVC-SCHEDULED.info.impact
+    action "" SVC-SCHEDULED.info.act.1
+    evidence "$(t SVC-SCHEDULED.ev.1)" "${all_jobs%$'\n'}"
 fi

@@ -1,0 +1,126 @@
+# Messages de lib/checks/80-security.sh. Format et règles : voir lib/lang/en/common.lang.
+# Les noms de fichiers de clés SSH peuvent être masqués (--sanitize) : jamais
+# dans un titre, une conséquence ou une commande (<key-file>) ; ils restent
+# dans la preuve.
+
+section.80-security=Posture de sécurité
+
+# ---- SEC-DISK-ENC ----
+SEC-DISK-ENC.ok.title=Périphérique chiffré trouvé (LUKS)
+SEC-DISK-ENC.warn.title=Aucun chiffrement de disque détecté sur un portable
+SEC-DISK-ENC.warn.impact=Si le portable est perdu ou volé, n'importe qui peut lire toutes ses données (projets, mots de passe et jetons d'accès, clés SSH, sauvegardes de bases de données) en branchant le disque sur un autre ordinateur. Le mot de passe de session ne protège pas le disque lui-même.
+SEC-DISK-ENC.warn.act.1=En attendant, rangez les données sensibles dans des archives chiffrées ou dans un coffre (gestionnaire de mots de passe, dossier chiffré).
+SEC-DISK-ENC.warn.act.2=Le chiffrement complet du disque ne s'ajoute proprement qu'à l'installation d'Ubuntu : à la prochaine réinstallation, choisissez l'option de chiffrement de l'installateur et une phrase secrète solide.
+SEC-DISK-ENC.warn.act.3=Si vous acceptez le risque, ajoutez SEC-DISK-ENC à IGNORE_CHECKS dans uhc.conf : cet avertissement n'apparaîtra plus.
+SEC-DISK-ENC.info.title=Aucun chiffrement de disque détecté
+SEC-DISK-ENC.info.impact=Risque moindre pour un ordinateur fixe rangé dans un lieu sûr. Sans chiffrement, quiconque emporte le disque peut lire son contenu.
+SEC-DISK-ENC.info.act.1=Si cet ordinateur contient des données sensibles, envisagez le chiffrement à la prochaine réinstallation d'Ubuntu (option de chiffrement de l'installateur).
+SEC-DISK-ENC.info.act.2=Si le risque est accepté, vous pouvez ajouter SEC-DISK-ENC à IGNORE_CHECKS dans uhc.conf.
+SEC-DISK-ENC.none.caution=Chiffrer le disque d'un système installé impose de le réinstaller : faites d'abord une sauvegarde complète et vérifiez que vous savez la restaurer. Gardez la phrase secrète en lieu sûr : si elle est oubliée, les données sont perdues.
+
+# ---- SEC-SECUREBOOT ----
+SEC-SECUREBOOT.ok.title=Secure Boot activé
+SEC-SECUREBOOT.off.title=Secure Boot désactivé
+SEC-SECUREBOOT.off.impact=Secure Boot est un réglage du micrologiciel (firmware) qui ne laisse démarrer l'ordinateur qu'avec des logiciels signés. Sans lui, un noyau modifié ou un « rootkit » (logiciel malveillant qui se charge avant le système et s'y cache) peut démarrer sans être remarqué.
+SEC-SECUREBOOT.off.act.1=Liste les pilotes supplémentaires compilés sur cet ordinateur (modules DKMS, comme NVIDIA ou VirtualBox). Si la commande est introuvable, il n'y en a aucun. Lecture seule.
+SEC-SECUREBOOT.off.act.2=S'il y en a, ils doivent être signés avec une clé que vous enregistrez au démarrage suivant (enrôlement MOK, proposé par Ubuntu à l'installation d'un tel pilote) ; sinon ils ne se chargent plus une fois Secure Boot activé.
+SEC-SECUREBOOT.off.act.3=Activez Secure Boot dans les réglages du micrologiciel (l'écran obtenu avec une touche comme F2, F10 ou Suppr à l'allumage). Les noyaux d'Ubuntu sont signés et démarrent normalement.
+SEC-SECUREBOOT.off.caution=Si l'ordinateur ne démarre plus, ou si un pilote (carte graphique, virtualisation) cesse de fonctionner, désactivez Secure Boot au même endroit : rien n'est perdu.
+SEC-SECUREBOOT.bios.title=Démarrage en BIOS ancien (pas d'UEFI) : Secure Boot ne s'applique pas
+SEC-SECUREBOOT.bios.impact=Cet ordinateur démarre en mode ancien, où Secure Boot n'existe pas. Rien à faire.
+SEC-SECUREBOOT.partial.1=état de Secure Boot illisible
+
+# ---- SEC-APPARMOR ----
+SEC-APPARMOR.ok.title=AppArmor activé
+SEC-APPARMOR.warn.title=AppArmor désactivé
+SEC-APPARMOR.warn.impact=AppArmor est le mécanisme d'Ubuntu qui limite ce que chaque service et chaque snap a le droit de faire. Sans lui, une faille dans l'un d'eux donne à un attaquant un accès bien plus large au système.
+SEC-APPARMOR.warn.act.1=Affiche les options avec lesquelles le noyau a démarré : cherchez apparmor=0, qui désactive AppArmor. Lecture seule.
+SEC-APPARMOR.warn.act.2=Si apparmor=0 y figure, retirez-le de la ligne GRUB_CMDLINE_LINUX_DEFAULT ou GRUB_CMDLINE_LINUX du fichier /etc/default/grub (à modifier avec sudo).
+SEC-APPARMOR.warn.act.3=Régénère le menu de démarrage à partir de /etc/default/grub. Le changement prend effet au prochain redémarrage.
+SEC-APPARMOR.warn.caution=Une erreur dans /etc/default/grub peut empêcher l'ordinateur de démarrer : copiez d'abord le fichier ('sudo cp /etc/default/grub /etc/default/grub.bak') et ne modifiez que ce mot.
+
+# ---- SEC-UID0 ----
+SEC-UID0.crit.title=Compte(s) autre(s) que root avec l'UID 0 : {accounts}
+SEC-UID0.crit.impact=L'UID 0 est le numéro d'utilisateur de root, l'administrateur : tout compte qui le porte a le contrôle total de l'ordinateur. Ubuntu ne crée qu'un seul compte de ce type, root. Un second est un moyen connu de cacher une porte dérobée, sauf si vous l'avez créé volontairement.
+SEC-UID0.crit.act.1=Affiche la fiche du compte : son dossier personnel et son shell (le programme lancé à la connexion). Lecture seule.
+SEC-UID0.crit.act.2=Indique si le compte a un mot de passe et s'il est verrouillé. Lecture seule.
+SEC-UID0.crit.act.3=Verrouille le mot de passe du compte : plus personne ne peut se connecter avec. Réversible avec 'sudo passwd -u <name>'.
+SEC-UID0.crit.caution=Verrouiller le mot de passe ne bloque pas les connexions par clé SSH. Si vous n'avez pas créé ce compte, considérez que quelqu'un d'autre a pu prendre la main sur l'ordinateur : changer un mot de passe ne suffit pas, faites-vous aider par une personne compétente avant de l'utiliser pour quoi que ce soit de sensible.
+
+# ---- SEC-ADMINS ----
+SEC-ADMINS.info.title=Comptes avec les droits sudo : {accounts}
+SEC-ADMINS.info.none=aucun
+SEC-ADMINS.info.impact=Les comptes listés peuvent agir en administrateur (root) avec la commande sudo, après avoir tapé leur propre mot de passe.
+SEC-ADMINS.info.act.1=Vérifiez que chacun appartient à une personne qui doit administrer cet ordinateur.
+SEC-ADMINS.info.act.2=Retire un compte du groupe sudo (remplacez <user> par son nom). Prend effet à sa prochaine connexion. Réversible avec 'sudo usermod -aG sudo <user>'.
+SEC-ADMINS.info.caution=Ne retirez jamais votre propre compte s'il est le dernier administrateur : vous ne pourriez plus gérer l'ordinateur.
+
+# ---- SEC-EMPTY-PW ----
+SEC-EMPTY-PW.crit.title=Compte(s) sans mot de passe : {accounts}
+SEC-EMPTY-PW.crit.impact=N'importe qui peut se connecter sous ces comptes, sans rien taper, partout où la connexion par mot de passe est permise (écran de connexion, console, accès à distance).
+SEC-EMPTY-PW.crit.act.1=Affiche l'état du mot de passe du compte (NP signifie pas de mot de passe). Lecture seule.
+SEC-EMPTY-PW.crit.act.2=Donne un mot de passe au compte. À utiliser pour un compte avec lequel quelqu'un se connecte.
+SEC-EMPTY-PW.crit.act.3=Verrouille le mot de passe du compte : plus personne ne peut se connecter avec. Pour un compte avec lequel personne ne se connecte. Réversible avec 'sudo passwd -u <name>'.
+SEC-EMPTY-PW.crit.caution=Si l'un de ces comptes est le vôtre, donnez-lui un mot de passe plutôt que de le verrouiller.
+SEC-EMPTY-PW.partial.1=comptes sans mot de passe non vérifiés (sudo nécessaire)
+
+# ---- SEC-SSHD ----
+SEC-SSHD-EFFECTIVE.partial.1=la configuration effective de sshd demande sudo ; fichiers lus directement (valeurs par défaut non visibles)
+SEC-SSHD.weak.title=Serveur SSH actif avec des réglages faibles : {issues}
+SEC-SSHD.weak.impact=Le serveur SSH permet de se connecter à cet ordinateur depuis le réseau. Avec la connexion par mot de passe, quiconque le joint peut essayer des mots de passe jusqu'à trouver le bon ; avec la connexion directe en root, une seule réussite donne le contrôle total.
+SEC-SSHD.weak.act.1=Affiche les réglages réellement utilisés par le serveur SSH sur ces deux points. Lecture seule.
+SEC-SSHD.weak.act.2=Avant de désactiver la connexion par mot de passe, assurez-vous que la connexion par clé SSH fonctionne : depuis l'autre ordinateur, copiez votre clé publique avec ssh-copy-id, puis testez une connexion dans une nouvelle fenêtre.
+SEC-SSHD.weak.act.3=Dans /etc/ssh/sshd_config, ou dans le fichier de /etc/ssh/sshd_config.d/ qui les définit, mettez 'PasswordAuthentication no' et 'PermitRootLogin no' (ou 'prohibit-password'). Modifiez le fichier avec sudo.
+SEC-SSHD.weak.act.4=Vérifie que la configuration du serveur SSH ne contient pas d'erreur. Ne modifie rien.
+SEC-SSHD.weak.act.5=Applique la nouvelle configuration. Les sessions ouvertes restent connectées.
+SEC-SSHD.weak.caution=Sur un ordinateur administré à distance, une erreur ici peut vous enfermer dehors. Gardez votre session actuelle ouverte, testez une nouvelle connexion dans une deuxième fenêtre avant de la fermer, et ne désactivez jamais la connexion par mot de passe avant que la connexion par clé fonctionne.
+SEC-SSHD.running.title=Serveur SSH actif
+SEC-SSHD.running.impact=Le serveur SSH permet de se connecter à cet ordinateur depuis le réseau. Si vous ne le faites jamais, c'est une porte ouverte pour rien.
+SEC-SSHD.running.act.1=Affiche l'état du serveur SSH. Lecture seule.
+SEC-SSHD.running.act.2=Arrête le serveur SSH et l'empêche de se lancer au démarrage. Réversible avec 'sudo systemctl enable --now ssh.socket' sur Ubuntu 22.10 et suivantes, ou 'sudo systemctl enable --now ssh' sur les versions plus anciennes.
+SEC-SSHD.running.caution=Ne lancez pas cette commande depuis une session SSH : vous couperiez votre propre accès. Lancez-la sur l'ordinateur lui-même.
+SEC-SSHD.stopped.title=openssh-server installé mais arrêté
+SEC-SSHD.stopped.impact=Rien n'attend de connexion à distance pour l'instant. Si vous ne vous connectez jamais à cet ordinateur à distance, ce paquet ne sert pas.
+SEC-SSHD.stopped.act.1=Désinstalle le serveur SSH. Réversible en le réinstallant avec 'sudo apt install openssh-server'.
+
+# ---- SEC-SSH-KEYS ----
+SEC-SSH-KEYS.nopass.title=Clé(s) privée(s) SSH sans phrase secrète dans {dir}
+SEC-SSH-KEYS.nopass.impact=Tout programme lancé sous ce compte (script malveillant, dépendance de projet compromise) peut copier ces clés et s'en servir pour se connecter à vos serveurs ou à vos dépôts de code, sans rien avoir à taper.
+SEC-SSH-KEYS.nopass.act.1=Affiche l'empreinte et le type d'une clé (remplacez <key-file> par un nom de la liste ci-dessous), pour retrouver où elle sert. N'affiche rien de secret. Lecture seule.
+SEC-SSH-KEYS.nopass.act.2=Ajoute une phrase secrète à la clé. La clé elle-même ne change pas : les serveurs continuent de l'accepter. Réversible en relançant la commande avec une phrase secrète vide.
+SEC-SSH-KEYS.nopass.act.3=Ou bien rangez la clé dans un coffre qui fournit un agent SSH (certains gestionnaires de mots de passe le font), puis supprimez le fichier.
+SEC-SSH-KEYS.nopass.act.4=Supprimez les clés dont vous ne vous servez plus, et révoquez-les là où elles étaient autorisées : retirez la clé publique correspondante de ~/.ssh/authorized_keys sur les serveurs, ou des réglages de votre compte sur les sites d'hébergement de code.
+SEC-SSH-KEYS.nopass.caution=Gardez la phrase secrète dans un gestionnaire de mots de passe : oubliée, elle rend la clé inutilisable, et il faudrait en créer et en installer une nouvelle. Avant de supprimer une clé, vérifiez qu'aucun serveur n'est accessible uniquement avec elle.
+SEC-SSH-KEYS.ev.1=Clés non protégées
+SEC-SSH-KEYS.ok.title={n} fichier(s) de clé privée SSH, aucun stocké sans protection
+SEC-SSH-KEYS.none.title=Aucun fichier de clé privée SSH dans {dir}
+
+# ---- SEC-SSH-FIDO ----
+SEC-SSH-FIDO.info.title=Clé(s) SSH matérielle(s) (FIDO)
+SEC-SSH-FIDO.info.impact=Ces fichiers de clé ne servent à rien sans la clé de sécurité physique : aucune phrase secrète n'est nécessaire.
+SEC-SSH-FIDO.ev.1=Clés FIDO
+
+# ---- SEC-SSH-PERMS ----
+SEC-SSH-PERMS.dir.title={dir} a les permissions {mode} (700 attendu)
+SEC-SSH-PERMS.dir.impact=Les autres comptes de cet ordinateur peuvent regarder dans votre dossier SSH : noms de vos clés, liste des serveurs connus, réglages de connexion.
+SEC-SSH-PERMS.dir.act.1=Rend le dossier accessible à vous seul. À lancer dans votre propre session, sans sudo. Réversible avec 'chmod {mode} ~/.ssh'.
+SEC-SSH-PERMS.keys.title=Clé(s) privée(s) SSH lisible(s) par d'autres
+SEC-SSH-PERMS.keys.impact=Les autres comptes de cet ordinateur peuvent lire ces clés privées et s'en servir à votre place. SSH refuse d'ailleurs d'utiliser une clé privée que d'autres peuvent lire.
+SEC-SSH-PERMS.keys.act.1=Affiche les fichiers de votre dossier SSH et leurs permissions. Lecture seule.
+SEC-SSH-PERMS.keys.act.2=Rend une clé lisible par vous seul (remplacez <key-file> par un nom de la liste ci-dessous). À lancer dans votre propre session, sans sudo.
+SEC-SSH-PERMS.ev.1=Clés et permissions
+
+# ---- SEC-SSH-INVENTORY ----
+SEC-SSH-INVENTORY.info.title=Inventaire des fichiers de clé privée SSH (à passer en revue pour les clés obsolètes)
+SEC-SSH-INVENTORY.info.impact=Chaque clé ouvre un accès quelque part (serveurs, hébergement de code). Une clé oubliée fonctionne toujours pour quiconque en obtient une copie.
+SEC-SSH-INVENTORY.info.act.1=Affiche l'empreinte et le type d'une clé (remplacez <key-file> par un nom de la liste ci-dessous), pour retrouver où elle sert. N'affiche rien de secret. Lecture seule.
+SEC-SSH-INVENTORY.info.act.2=Supprimez les clés de serveurs ou de services qui n'existent plus, et révoquez-les là où elles étaient autorisées (authorized_keys sur le serveur, réglages du compte sur les sites d'hébergement de code).
+SEC-SSH-INVENTORY.info.caution=Une clé supprimée ne se récupère pas. Avant d'en supprimer une, vérifiez qu'aucun serveur n'est accessible uniquement avec elle.
+SEC-SSH-INVENTORY.ev.1=Clés (nom, type, protection, permissions, date)
+
+# ---- SEC-HOME-PERMS ----
+SEC-HOME-PERMS.warn.title=Le dossier personnel {home} est accessible aux autres utilisateurs ({mode})
+SEC-HOME-PERMS.warn.impact=Les autres comptes et services de cet ordinateur peuvent parcourir vos fichiers personnels. Le réglage par défaut d'Ubuntu est 750 : vous et votre groupe seulement.
+SEC-HOME-PERMS.warn.act.1=Affiche les permissions de votre dossier personnel. Lecture seule.
+SEC-HOME-PERMS.warn.act.2=Ferme votre dossier personnel aux autres comptes (réglage par défaut d'Ubuntu). À lancer dans votre propre session, sans sudo. Réversible avec 'chmod {mode} ~'.
+SEC-HOME-PERMS.warn.caution=Si un service doit lire des fichiers de votre dossier personnel (serveur web qui publie ~/public_html, dossier partagé), il ne le pourra plus : vérifiez-le après le changement.

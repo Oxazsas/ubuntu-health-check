@@ -11,22 +11,27 @@
 #   - automatic security updates not running.
 # Nothing here runs 'apt update': results are based on the current package
 # lists, whose age is reported first.
+#
+# Texts: lib/lang/*/30-apt.lang (keys APT-*, section.30-apt).
 # -----------------------------------------------------------------------------
 
-section "APT packages and repositories"
+section "$(t section.30-apt)"
 
 # ---- freshness of package lists ------------------------------------------------
 newest="$(find /var/lib/apt/lists -maxdepth 1 -name '*Release' -printf '%T@\n' 2>/dev/null | sort -rn | head -n1)"
 if [[ -n "$newest" ]]; then
     APT_LISTS_AGE_DAYS=$(( ( $(date +%s) - ${newest%.*} ) / 86400 ))
     if (( APT_LISTS_AGE_DAYS > APT_LISTS_MAX_AGE )); then
-        finding WARNING APT-LISTS-AGE "Package lists are ${APT_LISTS_AGE_DAYS} days old" \
-            "Results below may be outdated, and it suggests automatic updates are not running. Refresh with 'sudo apt update' (safe, changes no package) and re-run the audit."
+        finding WARNING APT-LISTS-AGE "$(t APT-LISTS-AGE.warn.title days="$APT_LISTS_AGE_DAYS")"
+        impact APT-LISTS-AGE.warn.impact
+        action "sudo apt update" APT-LISTS-AGE.warn.act.1
+        action "systemctl list-timers apt-daily.timer" APT-LISTS-AGE.warn.act.2
+        caution APT-LISTS-AGE.warn.caution
     else
-        finding OK APT-LISTS-AGE "Package lists refreshed ${APT_LISTS_AGE_DAYS} day(s) ago"
+        finding OK APT-LISTS-AGE "$(t APT-LISTS-AGE.ok.title days="$APT_LISTS_AGE_DAYS")"
     fi
 else
-    partial APT-LISTS-AGE "package list age unknown (no Release files in /var/lib/apt/lists)"
+    partial APT-LISTS-AGE "$(t APT-LISTS-AGE.partial.1)"
 fi
 
 # ---- pending upgrades and holds ---------------------------------------------
@@ -56,28 +61,37 @@ else
     apt_list_ok=0
 fi
 if (( apt_list_ok == 0 )); then
-    partial APT-UPGRADES "pending upgrades not checked ('apt list' failed)"
+    partial APT-UPGRADES "$(t APT-UPGRADES.partial.1)"
 elif (( n_sec > 0 )); then
-    finding WARNING APT-SECURITY-UPGRADES "${n_sec} security update(s) pending (${n_upg} upgrades in total)" \
-        "Security updates are normally applied automatically within a day. If they accumulate, check unattended-upgrades (see below)."
-    evidence "apt list --upgradable" "$upgradable"
+    finding WARNING APT-SECURITY-UPGRADES "$(t APT-SECURITY-UPGRADES.warn.title n="$n_sec" total="$n_upg")"
+    impact APT-SECURITY-UPGRADES.warn.impact
+    action "apt list --upgradable" APT-SECURITY-UPGRADES.warn.act.1
+    action "sudo apt upgrade" APT-SECURITY-UPGRADES.warn.act.2
+    action "" APT-SECURITY-UPGRADES.warn.act.3
+    caution APT-SECURITY-UPGRADES.warn.caution
+    evidence "$(t APT-SECURITY-UPGRADES.ev.1)" "$upgradable"
 elif (( n_upg > 0 )); then
-    finding INFO APT-UPGRADES "${n_upg} non-security upgrade(s) pending"
-    evidence "apt list --upgradable" "$upgradable"
+    finding INFO APT-UPGRADES "$(t APT-UPGRADES.info.title n="$n_upg")"
+    impact APT-UPGRADES.info.impact
+    action "sudo apt upgrade" APT-UPGRADES.info.act.1
+    evidence "$(t APT-UPGRADES.ev.1)" "$upgradable"
 else
-    finding OK APT-UPGRADES "No pending upgrades"
+    finding OK APT-UPGRADES "$(t APT-UPGRADES.ok.title)"
 fi
 if [[ -n "$phased" ]]; then
-    finding INFO APT-PHASED "$(wc -l <<<"$phased") upgrade(s) deferred by phased updates" \
-        "This is normal: Ubuntu rolls out some updates gradually to a growing share of machines. They will be installed automatically once this machine is included; no action is required."
-    evidence "Deferred packages (apt-get -s upgrade)" "$phased"
+    finding INFO APT-PHASED "$(t APT-PHASED.info.title n="$(wc -l <<<"$phased")")"
+    impact APT-PHASED.info.impact
+    evidence "$(t APT-PHASED.ev.1)" "$phased"
 fi
 
 held="$(apt-mark "${APT_RO[@]}" showhold 2>/dev/null)"
 if [[ -n "$held" ]]; then
-    finding WARNING APT-HELD "$(wc -l <<<"$held") package(s) on hold (never upgraded)" \
-        "A hold is sometimes intentional, but a forgotten one blocks security fixes. Review with 'apt-mark showhold'."
-    evidence "Held packages" "$held"
+    finding WARNING APT-HELD "$(t APT-HELD.warn.title n="$(wc -l <<<"$held")")"
+    impact APT-HELD.warn.impact
+    action "apt-mark showhold" APT-HELD.warn.act.1
+    action "sudo apt-mark unhold <package>" APT-HELD.warn.act.2
+    caution APT-HELD.warn.caution
+    evidence "$(t APT-HELD.ev.1)" "$held"
 fi
 
 # ---- packages whose installed version no repository offers ----------------------
@@ -97,7 +111,7 @@ if installed_list="$(apt "${APT_RO[@]}" list --installed 2>/dev/null)"; then
     done < <(cut -d/ -f1 <<<"$local_list")
 else
     installed_ok=0
-    partial APT-OBSOLETE "installed package origins not checked ('apt list --installed' failed)"
+    partial APT-OBSOLETE "$(t APT-OBSOLETE.partial.1)"
 fi
 
 # Among non-kernel obsolete packages, separate those for which the configured
@@ -112,31 +126,46 @@ if (( ${#obsolete_other[@]} > 0 )); then
 fi
 
 if (( ${#stuck[@]} > 0 )); then
-    finding WARNING APT-STUCK-VERSION "${#stuck[@]} package(s) stuck on a version from a removed or disabled repository" \
-        "The installed version comes from a source that is no longer configured (typically a PPA or vendor repository disabled by a release upgrade), and the official repositories offer a different version. Because the installed version number is often higher, apt never replaces it and it receives no updates. Fix: 'apt install --simulate --allow-downgrades <pkg>/${OS_CODENAME:-<codename>}', check that nothing is removed, then run it for real."
-    evidence "Installed vs available versions (apt-cache policy)" "$(apt-cache "${APT_RO[@]}" policy "${stuck[@]}" 2>/dev/null)"
+    codename_cmd="$(safe_name "${OS_CODENAME:-}" "<codename>")"
+    finding WARNING APT-STUCK-VERSION "$(t APT-STUCK-VERSION.warn.title n="${#stuck[@]}")"
+    impact APT-STUCK-VERSION.warn.impact
+    action "apt-cache policy <package>" APT-STUCK-VERSION.warn.act.1
+    action "apt install --simulate --allow-downgrades <package>/${codename_cmd}" APT-STUCK-VERSION.warn.act.2
+    action "sudo apt install --allow-downgrades <package>/${codename_cmd}" APT-STUCK-VERSION.warn.act.3
+    caution APT-STUCK-VERSION.warn.caution
+    evidence "$(t APT-STUCK-VERSION.ev.1)" "$(apt-cache "${APT_RO[@]}" policy "${stuck[@]}" 2>/dev/null)"
 fi
 
 if (( ${#orphans[@]} > 0 )); then
-    finding WARNING APT-OBSOLETE "${#orphans[@]} package(s) no longer available from any repository" \
-        "These packages will never receive updates: leftovers of a previous release, a .deb installed by hand, or a removed repository. Do not remove them blindly: other packages may depend on them. Always simulate first ('apt purge --simulate <pkg>') and stop if core desktop packages appear. For libraries renamed in newer releases (suffix t64 on 24.04+), install the successor instead, which replaces the old one cleanly."
-    evidence "Obsolete packages" "$(awk -F/ 'NR==FNR {want[$0]=1; next} ($1 in want)' <(printf '%s\n' "${orphans[@]}") - <<<"$local_list")"
+    finding WARNING APT-OBSOLETE "$(t APT-OBSOLETE.warn.title n="${#orphans[@]}")"
+    impact APT-OBSOLETE.warn.impact
+    action "apt purge --simulate <package>" APT-OBSOLETE.warn.act.1
+    action "apt-cache policy <package>t64" APT-OBSOLETE.warn.act.2
+    action "sudo apt purge <package>" APT-OBSOLETE.warn.act.3
+    caution APT-OBSOLETE.warn.caution
+    evidence "$(t APT-OBSOLETE.ev.1)" "$(awk -F/ 'NR==FNR {want[$0]=1; next} ($1 in want)' <(printf '%s\n' "${orphans[@]}") - <<<"$local_list")"
 fi
 
 if (( ${#obsolete_kernel[@]} > 0 )); then
-    finding INFO APT-OBSOLETE-KERNEL "${#obsolete_kernel[@]} obsolete kernel-related package(s)" \
-        "Old kernels, headers and metapackages from earlier releases. If the kernel metapackage check is OK, they can be removed once the current kernel is validated (remove the obsolete metapackage, then 'apt autoremove', simulating first)."
-    evidence "Obsolete kernel packages" "$(printf '%s\n' "${obsolete_kernel[@]}")"
+    finding INFO APT-OBSOLETE-KERNEL "$(t APT-OBSOLETE-KERNEL.info.title n="${#obsolete_kernel[@]}")"
+    impact APT-OBSOLETE-KERNEL.info.impact
+    action "sudo apt remove --simulate <package>" APT-OBSOLETE-KERNEL.info.act.1
+    action "sudo apt autoremove --simulate" APT-OBSOLETE-KERNEL.info.act.2
+    caution APT-OBSOLETE-KERNEL.info.caution
+    evidence "$(t APT-OBSOLETE-KERNEL.ev.1)" "$(printf '%s\n' "${obsolete_kernel[@]}")"
 fi
 
-(( installed_ok == 1 && ${#obsolete[@]} == 0 )) && finding OK APT-OBSOLETE "Every installed package version is available from a configured repository"
+(( installed_ok == 1 && ${#obsolete[@]} == 0 )) && finding OK APT-OBSOLETE "$(t APT-OBSOLETE.ok.title)"
 
 # ---- residual configuration (removed packages whose config files remain) --------
 residual="$(dpkg -l 2>/dev/null | awk '$1=="rc"{print $2}')"
 if [[ -n "$residual" ]]; then
-    finding INFO APT-RESIDUAL "$(wc -l <<<"$residual") removed package(s) with leftover configuration files" \
-        "Harmless but clutters the system. Review then clean with 'apt purge --simulate ~c' and 'sudo apt purge ~c' (quote the ~c)."
-    evidence "Packages in 'rc' state" "$residual"
+    finding INFO APT-RESIDUAL "$(t APT-RESIDUAL.info.title n="$(wc -l <<<"$residual")")"
+    impact APT-RESIDUAL.info.impact
+    action "apt purge --simulate '~c'" APT-RESIDUAL.info.act.1
+    action "sudo apt purge '~c'" APT-RESIDUAL.info.act.2
+    caution APT-RESIDUAL.info.caution
+    evidence "$(t APT-RESIDUAL.ev.1)" "$residual"
 fi
 
 # ---- repositories ------------------------------------------------------------
@@ -183,17 +212,22 @@ disabled="$(grep '^disabled|' <<<"$repo_entries" | while IFS='|' read -r _ file 
                 is_official_uri "$uri" || printf '%s %s %s\n' "$file" "$uri" "$suite"
             done)"
 if [[ -n "$disabled" ]]; then
-    finding INFO APT-REPO-DISABLED "Disabled third-party repository entries: $(wc -l <<<"$disabled")" \
-        "Release upgrades disable third-party repositories. Packages installed from them stop updating (see obsolete / stuck packages). Either re-enable the repository for the current release, or remove the packages and the entry."
-    evidence "Disabled entries (file, URI, suite)" "$disabled"
+    finding INFO APT-REPO-DISABLED "$(t APT-REPO-DISABLED.info.title n="$(wc -l <<<"$disabled")")"
+    impact APT-REPO-DISABLED.info.impact
+    action "" APT-REPO-DISABLED.info.act.1
+    action "" APT-REPO-DISABLED.info.act.2
+    evidence "$(t APT-REPO-DISABLED.ev.1)" "$disabled"
 fi
 
 leftovers="$(find /etc/apt/sources.list.d -maxdepth 1 -type f \( -name '*.distUpgrade' -o -name '*.save' \
              -o -name '*.disabled' -o -name '*.dpkg-old' -o -name '*.dpkg-dist' -o -name '*.bak' \) 2>/dev/null | sort)"
 if [[ -n "$leftovers" ]]; then
-    finding INFO APT-REPO-LEFTOVER "$(wc -l <<<"$leftovers") leftover file(s) in sources.list.d" \
-        "Backups created by release upgrades or manual edits. Ignored by apt, safe to delete once reviewed."
-    evidence "Leftover files" "$leftovers"
+    finding INFO APT-REPO-LEFTOVER "$(t APT-REPO-LEFTOVER.info.title n="$(wc -l <<<"$leftovers")")"
+    impact APT-REPO-LEFTOVER.info.impact
+    action "ls -l /etc/apt/sources.list.d" APT-REPO-LEFTOVER.info.act.1
+    action "sudo rm /etc/apt/sources.list.d/<file>" APT-REPO-LEFTOVER.info.act.2
+    caution APT-REPO-LEFTOVER.info.caution
+    evidence "$(t APT-REPO-LEFTOVER.ev.1)" "$leftovers"
 fi
 
 third_party=""
@@ -216,42 +250,56 @@ while IFS='|' read -r status file uri suite; do
 done <<<"$repo_entries"
 
 if [[ -n "$third_party" ]]; then
-    finding INFO APT-REPO-THIRDPARTY "Enabled third-party repository entries: $(grep -c . <<<"$third_party")" \
-        "Each one can install or replace packages with root privileges: keep only vendors you trust and still use."
-    evidence "Enabled third-party repositories" "${third_party%$'\n'}"
+    finding INFO APT-REPO-THIRDPARTY "$(t APT-REPO-THIRDPARTY.info.title n="$(grep -c . <<<"$third_party")")"
+    impact APT-REPO-THIRDPARTY.info.impact
+    action "" APT-REPO-THIRDPARTY.info.act.1
+    evidence "$(t APT-REPO-THIRDPARTY.ev.1)" "${third_party%$'\n'}"
 fi
 
 if grep -q '^OFFICIAL' <<<"$suite_mismatch"; then
-    finding CRITICAL APT-REPO-SUITE "Official Ubuntu repositories from another release are enabled" \
-        "Mixing releases breaks dependencies and can partially upgrade or downgrade the system. Fix the suite names to '${OS_CODENAME}'."
-    evidence "Mismatching entries" "${suite_mismatch%$'\n'}"
+    finding CRITICAL APT-REPO-SUITE "$(t APT-REPO-SUITE.crit.title)"
+    impact APT-REPO-SUITE.crit.impact
+    action "" APT-REPO-SUITE.crit.act.1 codename="$OS_CODENAME"
+    action "sudo apt update" APT-REPO-SUITE.crit.act.2
+    action "apt-cache policy" APT-REPO-SUITE.crit.act.3 codename="$OS_CODENAME"
+    caution APT-REPO-SUITE.crit.caution
+    evidence "$(t APT-REPO-SUITE.ev.1)" "${suite_mismatch%$'\n'}"
 elif [[ -n "$suite_mismatch" ]]; then
-    finding INFO APT-REPO-SUITE "Third-party repositories using another release name than '${OS_CODENAME}'" \
-        "Some vendors publish a single suite for all releases (this is expected for Signal, for example). Otherwise, check whether the vendor offers packages for '${OS_CODENAME}'."
-    evidence "Entries" "${suite_mismatch%$'\n'}"
+    finding INFO APT-REPO-SUITE "$(t APT-REPO-SUITE.info.title codename="$OS_CODENAME")"
+    impact APT-REPO-SUITE.info.impact
+    action "" APT-REPO-SUITE.info.act.1 codename="$OS_CODENAME"
+    evidence "$(t APT-REPO-SUITE.ev.2)" "${suite_mismatch%$'\n'}"
 fi
 
 duplicates="$(grep '^enabled|' <<<"$repo_entries" | awk -F'|' '{k=$3" "$4; files[k]=files[k]" "$2; n[k]++} END {for (k in n) if (n[k]>1) print k " ->" files[k]}')"
 if [[ -n "$duplicates" ]]; then
-    finding INFO APT-REPO-DUPLICATE "Repository declared more than once" \
-        "apt warns about targets configured multiple times, and conflicting Signed-By options can break 'apt update'. Keep a single file per repository (prefer the .sources format)."
-    evidence "Duplicates (URI suite -> files)" "$duplicates"
+    finding INFO APT-REPO-DUPLICATE "$(t APT-REPO-DUPLICATE.info.title)"
+    impact APT-REPO-DUPLICATE.info.impact
+    action "" APT-REPO-DUPLICATE.info.act.1
+    action "sudo apt update" APT-REPO-DUPLICATE.info.act.2
+    caution APT-REPO-DUPLICATE.info.caution
+    evidence "$(t APT-REPO-DUPLICATE.ev.1)" "$duplicates"
 fi
 
 # Keys in the legacy global keyring are trusted for every repository.
 if [[ -s /etc/apt/trusted.gpg ]]; then
-    finding INFO APT-LEGACY-KEYS "Legacy global APT keyring in use (/etc/apt/trusted.gpg)" \
-        "Keys stored there can sign packages for any repository. Modern practice is one key per repository, referenced with Signed-By."
+    finding INFO APT-LEGACY-KEYS "$(t APT-LEGACY-KEYS.info.title)"
+    impact APT-LEGACY-KEYS.info.impact
+    action "gpg --show-keys /etc/apt/trusted.gpg" APT-LEGACY-KEYS.info.act.1
+    action "" APT-LEGACY-KEYS.info.act.2
+    caution APT-LEGACY-KEYS.info.caution
 fi
 
 # ---- automatic security updates -------------------------------------------------
 if pkg_installed unattended-upgrades; then
     uu="$(apt-config dump APT::Periodic::Unattended-Upgrade 2>/dev/null | grep -o '"[0-9]*"' | tr -d '"')"
     if [[ "${uu:-0}" != 0 ]]; then
-        finding OK APT-UNATTENDED "Automatic security updates enabled"
+        finding OK APT-UNATTENDED "$(t APT-UNATTENDED.ok.title)"
     else
-        finding WARNING APT-UNATTENDED "unattended-upgrades is installed but disabled" \
-            "Security updates are not applied automatically. Enable with 'sudo dpkg-reconfigure -plow unattended-upgrades'."
+        finding WARNING APT-UNATTENDED "$(t APT-UNATTENDED.off.title)"
+        impact APT-UNATTENDED.off.impact
+        action "apt-config dump APT::Periodic::Unattended-Upgrade" APT-UNATTENDED.off.act.1
+        action "sudo dpkg-reconfigure -plow unattended-upgrades" APT-UNATTENDED.off.act.2
     fi
     uu_log=/var/log/unattended-upgrades/unattended-upgrades.log
     if [[ -r "$uu_log" ]]; then
@@ -259,22 +307,31 @@ if pkg_installed unattended-upgrades; then
         if [[ -n "$last_run" ]]; then
             age=$(( ( $(date +%s) - $(date -d "$last_run" +%s) ) / 86400 ))
             if (( age > 7 )); then
-                finding WARNING APT-UNATTENDED-LASTRUN "Last unattended-upgrades run was ${age} days ago (${last_run})" \
-                    "It should run daily. Check 'systemctl list-timers apt-daily-upgrade.timer' and the log."
+                finding WARNING APT-UNATTENDED-LASTRUN "$(t APT-UNATTENDED-LASTRUN.warn.title days="$age" date="$last_run")"
+                impact APT-UNATTENDED-LASTRUN.warn.impact
+                action "systemctl list-timers apt-daily-upgrade.timer" APT-UNATTENDED-LASTRUN.warn.act.1
+                action "sudo tail -n 50 /var/log/unattended-upgrades/unattended-upgrades.log" APT-UNATTENDED-LASTRUN.warn.act.2
+                caution APT-UNATTENDED-LASTRUN.warn.caution
             fi
         fi
         uu_errors="$(tail -n 300 "$uu_log" | grep -E 'ERROR|WARNING' | tail -n 10)"
         if [[ -n "$uu_errors" ]]; then
-            finding WARNING APT-UNATTENDED-ERRORS "Recent errors in the unattended-upgrades log" \
-                "Some automatic updates may have failed."
-            evidence "Last errors/warnings" "$uu_errors"
+            finding WARNING APT-UNATTENDED-ERRORS "$(t APT-UNATTENDED-ERRORS.warn.title)"
+            impact APT-UNATTENDED-ERRORS.warn.impact
+            action "sudo tail -n 50 /var/log/unattended-upgrades/unattended-upgrades.log" APT-UNATTENDED-ERRORS.warn.act.1
+            action "sudo unattended-upgrade --dry-run --debug" APT-UNATTENDED-ERRORS.warn.act.2
+            action "" APT-UNATTENDED-ERRORS.warn.act.3
+            caution APT-UNATTENDED-ERRORS.warn.caution
+            evidence "$(t APT-UNATTENDED-ERRORS.ev.1)" "$uu_errors"
         fi
     else
-        partial APT-UNATTENDED-LASTRUN "unattended-upgrades log not readable (run with sudo)"
+        partial APT-UNATTENDED-LASTRUN "$(t APT-UNATTENDED-LASTRUN.partial.1)"
     fi
 else
-    finding WARNING APT-UNATTENDED "unattended-upgrades is not installed" \
-        "Security updates depend on manual action. Install it with 'sudo apt install unattended-upgrades'."
+    finding WARNING APT-UNATTENDED "$(t APT-UNATTENDED.missing.title)"
+    impact APT-UNATTENDED.missing.impact
+    action "apt-cache policy unattended-upgrades" APT-UNATTENDED.missing.act.1
+    action "sudo apt install unattended-upgrades" APT-UNATTENDED.missing.act.2
 fi
 
 # ---- Ubuntu Pro security coverage ---------------------------------------------
@@ -282,16 +339,17 @@ fi
 if have pro; then
     pro_out=""
     if [[ "$IS_ROOT" == 1 && "$TARGET_USER" == root ]]; then
-        partial APT-PRO-STATUS "pro security-status skipped (would write logs as root; run via sudo from a regular account)"
+        partial APT-PRO-STATUS "$(t APT-PRO-STATUS.partial.1)"
     else
         pro_out="$(as_target timeout "$CMD_TIMEOUT" pro security-status 2>/dev/null)"
     fi
     if [[ -n "$pro_out" ]]; then
-        extra=""
-        grep -q 'NOT attached' <<<"$pro_out" && \
-            extra=" Ubuntu Pro (free for personal use on up to 5 machines) adds security fixes for Universe packages and kernel livepatching."
-        finding INFO APT-PRO-STATUS "Security coverage summary (pro security-status)" \
-            "Packages from Universe/Multiverse only get community fixes; third-party and unavailable packages get none from Ubuntu.${extra}"
-        evidence "pro security-status" "$(grep -E 'packages|attached|until|esm' <<<"$pro_out")"
+        pro_detached=0
+        grep -q 'NOT attached' <<<"$pro_out" && pro_detached=1
+        finding INFO APT-PRO-STATUS "$(t APT-PRO-STATUS.info.title)"
+        impact APT-PRO-STATUS.info.impact
+        action "pro security-status" APT-PRO-STATUS.info.act.1
+        (( pro_detached == 1 )) && action "" APT-PRO-STATUS.info.act.2
+        evidence "$(t APT-PRO-STATUS.ev.1)" "$(grep -E 'packages|attached|until|esm' <<<"$pro_out")"
     fi
 fi

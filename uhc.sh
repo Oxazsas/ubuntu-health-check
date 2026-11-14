@@ -27,7 +27,7 @@
 
 set -uo pipefail
 
-UHC_VERSION="2.6.2"
+UHC_VERSION="2.7.0"
 
 # Public repository used by the root installation wizard (preferred source:
 # the code goes straight from the repository to a root-owned folder). Set it in
@@ -37,6 +37,38 @@ UHC_VERSION="2.6.2"
 UHC_REPO_URL="https://github.com/Oxazsas/ubuntu-health-check.git"
 # Root-owned copy used for sudo runs, and its private state (reference lists).
 ROOT_INSTALL_DIR="/opt/ubuntu-health-check"
+
+# ---- language of the computer (read before the environment is reset) ----------
+# The locale must be read here: the root re-execution below and the C locale
+# forced further down both erase it. This runs before PATH is fixed, so it
+# uses builtins only (no command at all), and it defines no function (the root
+# block would take one for an inherited function). The result is reduced to a
+# two-letter code whose only use is to pick a folder under lib/lang/. The
+# letters are listed one by one because a range such as [a-z] follows the
+# caller's locale at this point. UHC_LANG, when valid, forces the language
+# (it is also how the code survives the root re-execution).
+UHC_LOCALE_LANG=""
+if [[ "${UHC_LANG:-}" =~ ^[abcdefghijklmnopqrstuvwxyz]{2}$ ]]; then
+    UHC_LOCALE_LANG="$UHC_LANG"
+else
+    uhc_loc="${LANGUAGE:-}"
+    uhc_loc="${uhc_loc%%:*}"
+    [[ -n "$uhc_loc" ]] || uhc_loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+    # cron and systemd timers start without a locale (or with C / POSIX): use
+    # the system default, read as text, never sourced.
+    if [[ -z "$uhc_loc" || "$uhc_loc" == C || "$uhc_loc" == C.* || "$uhc_loc" == POSIX ]]; then
+        uhc_loc=""
+        uhc_re='^[[:space:]]*LANG="?([^"]*)'
+        if [[ -r /etc/default/locale ]]; then
+            while IFS= read -r uhc_line || [[ -n "$uhc_line" ]]; do
+                [[ "$uhc_line" =~ $uhc_re ]] && uhc_loc="${BASH_REMATCH[1]}"
+            done </etc/default/locale
+        fi
+    fi
+    uhc_loc="${uhc_loc:0:2}"
+    [[ "$uhc_loc" =~ ^[abcdefghijklmnopqrstuvwxyz]{2}$ ]] && UHC_LOCALE_LANG="$uhc_loc"
+    unset uhc_loc uhc_line uhc_re
+fi
 
 # ---- clean environment for root runs (first thing, before any command) ---------
 # The shebang uses 'bash -p': Bash then ignores BASH_ENV/ENV and does not import
@@ -55,6 +87,8 @@ if (( EUID == 0 )); then
     for v in $(compgen -e); do
         case "$v" in
             PATH|LANG|LC_ALL|HOME|TERM|NO_COLOR|SUDO_USER|UHC_REEXEC|PWD|OLDPWD|SHLVL|_) ;;
+            # Kept only in its expected form (two lowercase letters).
+            UHC_LANG) [[ "$UHC_LANG" =~ ^[abcdefghijklmnopqrstuvwxyz]{2}$ ]] || { env_ok=0; break; } ;;
             *) env_ok=0; break ;;
         esac
     done
@@ -65,12 +99,16 @@ if (( EUID == 0 )); then
         [[ -n "${NO_COLOR:-}" ]] && clean_env+=(NO_COLOR=1)
         # SUDO_USER is set by sudo itself; keep it only if it is a plain user name.
         [[ "${SUDO_USER:-}" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] && clean_env+=(SUDO_USER="$SUDO_USER")
+        # The language code read above (already validated): LANG is reset here.
+        [[ -n "$UHC_LOCALE_LANG" ]] && clean_env+=(UHC_LANG="$UHC_LOCALE_LANG")
         exec /usr/bin/env -i "${clean_env[@]}" /bin/bash -p "$(/usr/bin/readlink -f "${BASH_SOURCE[0]}")" "$@"
     fi
 fi
 
 # Parse command output in a predictable language, whatever the user's locale.
 export LC_ALL=C.UTF-8 LANG=C.UTF-8
+# Validated again now that ranges follow the C locale, before any use.
+[[ "$UHC_LOCALE_LANG" =~ ^[a-z]{2}$ ]] || UHC_LOCALE_LANG=""
 
 # Use system directories only: cron provides a minimal PATH (no /usr/sbin),
 # and a fixed PATH prevents a program in a user-writable directory from
@@ -96,8 +134,11 @@ IGNORE_PACKAGES=""       # packages to leave out of the obsolete-package list
 JOBS_ALLOW=""            # fingerprints of known-good scheduled/startup jobs (see report)
 MAX_EVIDENCE_LINES=40    # truncation of raw command output in the report
 CMD_TIMEOUT=30           # seconds before a single command is abandoned
+REPORT_LANG=auto         # auto (computer's locale) | two-letter code (en, fr...)
 
 QUIET=0
+BRIEF=0
+LANG_OPT=""
 SANITIZE=0
 PRINT_REPORT=0
 NO_NOTIFY=0
@@ -124,6 +165,10 @@ Usage: $(basename "$0") [options]
 
 Options:
   -q, --quiet          No terminal output (for cron / timers)
+      --brief          Terminal: one line per finding, without the action plan
+      --lang CODE      Language of the report and terminal output, as a
+                       two-letter code (en, fr...). Default: REPORT_LANG in
+                       uhc.conf, else the computer's locale, else English
   -s, --sanitize       Mask hostname, user name, IP/MAC addresses, SSH key and
                        container names in the saved report (for sharing it)
   -p, --print          Also print the report to stdout (e.g. to pipe it)
@@ -158,6 +203,10 @@ EOF
 while (( $# > 0 )); do
     case "$1" in
         -q|--quiet)    QUIET=1 ;;
+        --brief)       BRIEF=1 ;;
+        --lang)
+            [[ "${2:-}" =~ ^[a-z]{2}$ ]] || die "$1 needs a two-letter lowercase language code, e.g. en or fr"
+            LANG_OPT="$2"; shift ;;
         -s|--sanitize) SANITIZE=1 ;;
         -p|--print)    PRINT_REPORT=1 ;;
         -d|--data-dir) [[ -n "${2:-}" ]] || die "$1 needs a directory"; DATA_DIR="$2"; shift ;;
@@ -181,12 +230,14 @@ while (( $# > 0 )); do
 done
 
 # ---- code fingerprint -------------------------------------------------------------
-# fingerprint_of DIR — SHA-256 over uhc.sh and every module of the copy in DIR,
-# in a fixed order (16 hex digits). Shown in each report and log line, so a
-# root copy can be compared with its source. Defined here (not in lib/) so
-# that nothing else is loaded before the root safety check.
+# fingerprint_of DIR — SHA-256 over uhc.sh, every module and every language
+# catalog of the copy in DIR, in a fixed order (16 hex digits). Shown in each
+# report and log line, so a root copy can be compared with its source. Defined
+# here (not in lib/) so that nothing else is loaded before the root safety
+# check. Catalogs are included: they are not code, but they write the commands
+# proposed to the reader.
 fingerprint_of() {
-    (cd "$1" && { printf '%s\n' uhc.sh; find lib -type f -name '*.sh' | LC_ALL=C sort; } \
+    (cd "$1" && { printf '%s\n' uhc.sh; find lib -type f \( -name '*.sh' -o -name '*.lang' \) | LC_ALL=C sort; } \
         | while IFS= read -r f; do printf '%s\n' "$f"; sha256sum <"$f"; done | sha256sum | cut -c1-16)
 }
 CODE_FINGERPRINT="$(fingerprint_of "$UHC_DIR")"
@@ -297,6 +348,7 @@ load_config() {
             IGNORE_CHECKS)   pattern='^([A-Z0-9-]+( +|$))*$' ;;
             JOBS_ALLOW)      pattern='^([0-9a-f]{12}( +|$))*$' ;;
             IGNORE_PACKAGES) pattern='^([a-z0-9][a-z0-9.+-]*(:[a-z0-9]+)?( +|$))*$' ;;
+            REPORT_LANG)     pattern='^(auto|[a-z]{2})$' ;;
             *) echo "uhc: ignoring unknown config key '$(clean_line "$key")' in $file" >&2; continue ;;
         esac
         if [[ "$value" =~ $pattern ]]; then
@@ -318,6 +370,20 @@ load_config() {
     (( CMD_TIMEOUT >= 1 )) || CMD_TIMEOUT=30
 }
 load_config "$CONFIG_FILE"
+
+# ---- language ----------------------------------------------------------------------
+# --lang, then REPORT_LANG from uhc.conf, then the computer's locale (read at
+# the top of this script), then English. Every candidate is a validated
+# two-letter code; load_lang falls back to English when lib/lang/ has no
+# folder for it. Messages printed before this point stay in English.
+if [[ -n "$LANG_OPT" ]]; then
+    UHC_LANG_CODE="$LANG_OPT"
+elif [[ "$REPORT_LANG" != auto ]]; then
+    UHC_LANG_CODE="$REPORT_LANG"
+else
+    UHC_LANG_CODE="${UHC_LOCALE_LANG:-en}"
+fi
+load_lang "$UHC_LANG_CODE"
 
 # ---- alias management (no audit) --------------------------------------------------
 [[ "$ALIAS_ACTION" == install ]] && install_aliases "$ALIAS_NAME"
@@ -357,14 +423,17 @@ trap 'rm -rf -- "$WORK_DIR"' EXIT
 BODY_FILE="${WORK_DIR}/body.md"
 SUMMARY_FILE="${WORK_DIR}/summary.md"
 PARTIAL_FILE="${WORK_DIR}/partial.md"
-: >"$BODY_FILE"; : >"$SUMMARY_FILE"; : >"$PARTIAL_FILE"
+# Records of the action plan (critical, then warning findings).
+PLAN_CRIT_FILE="${WORK_DIR}/plan-critical.tsv"
+PLAN_WARN_FILE="${WORK_DIR}/plan-warning.tsv"
+: >"$BODY_FILE"; : >"$SUMMARY_FILE"; : >"$PARTIAL_FILE"; : >"$PLAN_CRIT_FILE"; : >"$PLAN_WARN_FILE"
 
 # ---- run the checks -----------------------------------------------------------
-say "${C_BLD}ubuntu-health-check ${UHC_VERSION}${C_RST} — read-only audit"
+say "${C_BLD}ubuntu-health-check ${UHC_VERSION}${C_RST} — $(t ui.start)"
 if [[ "$IS_ROOT" == 1 ]]; then
-    say "Running as root: full audit (home checks target user '${TARGET_USER}', output written as '${DATA_OWNER}')."
+    say "$(t ui.run_root user="$TARGET_USER" owner="$DATA_OWNER")"
 else
-    say "${C_DIM}Running unprivileged: some checks will be partial. See README for a full audit with sudo.${C_RST}"
+    say "${C_DIM}$(t ui.run_user)${C_RST}"
 fi
 
 for module in "${UHC_DIR}"/lib/checks/[0-9][0-9]-*.sh; do
@@ -383,8 +452,11 @@ write_log
 notify
 
 say ""
-say "${C_BLD}Result:${C_RST} ${C_RED}${COUNT_CRITICAL} critical${C_RST}, ${C_YEL}${COUNT_WARNING} warning${C_RST}, ${COUNT_INFO} info, ${C_GRN}${COUNT_OK} ok${C_RST}, ${COUNT_PARTIAL} partial"
-say "Report: ${REPORT_FILE}"
+say "${C_BLD}$(t ui.result)${C_RST} ${C_RED}${COUNT_CRITICAL} critical${C_RST}, ${C_YEL}${COUNT_WARNING} warning${C_RST}, ${COUNT_INFO} info, ${C_GRN}${COUNT_OK} ok${C_RST}, $(t ui.result_partial n="$COUNT_PARTIAL")"
+say "$(t ui.report_path path="$REPORT_FILE")"
+# The action plan, unless the terminal output is off or kept to one line per
+# finding (it is in the report either way).
+[[ "$QUIET" == 1 || "$BRIEF" == 1 ]] || render_plan term
 
 [[ "$PRINT_REPORT" == 1 ]] && cat "${WORK_DIR}/report.md"
 exit "$EXIT_CODE"

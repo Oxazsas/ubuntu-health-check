@@ -6,9 +6,13 @@
 # For SSH keys it reads only the first bytes of each file (to recognise a
 # private key header) and asks ssh-keygen whether the key opens with an empty
 # passphrase; nothing derived from the key is written anywhere.
+#
+# Texts: lib/lang/*/80-security.lang (keys SEC-*, section.80-security).
+# SSH key file names may be masked (--sanitize): they stay in the evidence,
+# never in a title, a consequence or a proposed command (<key-file> there).
 # -----------------------------------------------------------------------------
 
-section "Security posture"
+section "$(t section.80-security)"
 
 is_laptop=0
 compgen -G "/sys/class/power_supply/BAT*" >/dev/null && is_laptop=1
@@ -16,13 +20,20 @@ compgen -G "/sys/class/power_supply/BAT*" >/dev/null && is_laptop=1
 # ---- disk encryption ---------------------------------------------------------------
 if have lsblk; then
     if lsblk -rno TYPE,FSTYPE 2>/dev/null | grep -qE '^crypt|crypto_LUKS'; then
-        finding OK SEC-DISK-ENC "Encrypted block device found (LUKS)"
+        finding OK SEC-DISK-ENC "$(t SEC-DISK-ENC.ok.title)"
     elif (( is_laptop )); then
-        finding WARNING SEC-DISK-ENC "No disk encryption detected on a laptop" \
-            "If the laptop is lost or stolen, all data (projects, tokens, SSH keys, database dumps) is readable by plugging the disk into another machine. Full-disk encryption can only be added cleanly at install time; meanwhile keep sensitive data in encrypted archives or vaults. Silence with IGNORE_CHECKS=SEC-DISK-ENC if the risk is accepted."
+        finding WARNING SEC-DISK-ENC "$(t SEC-DISK-ENC.warn.title)"
+        impact SEC-DISK-ENC.warn.impact
+        action "" SEC-DISK-ENC.warn.act.1
+        action "" SEC-DISK-ENC.warn.act.2
+        action "" SEC-DISK-ENC.warn.act.3
+        caution SEC-DISK-ENC.none.caution
     else
-        finding INFO SEC-DISK-ENC "No disk encryption detected" \
-            "Lower risk on a desktop in a secured place, but consider it for machines holding sensitive data."
+        finding INFO SEC-DISK-ENC "$(t SEC-DISK-ENC.info.title)"
+        impact SEC-DISK-ENC.info.impact
+        action "" SEC-DISK-ENC.info.act.1
+        action "" SEC-DISK-ENC.info.act.2
+        caution SEC-DISK-ENC.none.caution
     fi
 fi
 
@@ -37,44 +48,72 @@ if [[ -d /sys/firmware/efi ]]; then
         [[ -n "$f" ]] && [[ "$(od -An -t u1 "$f" 2>/dev/null | awk '{print $NF}')" == 1 ]] && sb="SecureBoot enabled"
     fi
     if [[ "$sb" == *"enabled"* && "$sb" != *"disabled"* ]]; then
-        finding OK SEC-SECUREBOOT "Secure Boot enabled"
+        finding OK SEC-SECUREBOOT "$(t SEC-SECUREBOOT.ok.title)"
     elif [[ -n "$sb" ]]; then
-        finding INFO SEC-SECUREBOOT "Secure Boot disabled" \
-            "Secure Boot blocks unsigned kernels and boot-time rootkits. Ubuntu kernels are signed; out-of-tree modules (DKMS: NVIDIA, VirtualBox) need MOK enrolment. It can be enabled in the firmware setup, and disabled again if the machine does not boot."
+        finding INFO SEC-SECUREBOOT "$(t SEC-SECUREBOOT.off.title)"
+        impact SEC-SECUREBOOT.off.impact
+        action "dkms status" SEC-SECUREBOOT.off.act.1
+        action "" SEC-SECUREBOOT.off.act.2
+        action "" SEC-SECUREBOOT.off.act.3
+        caution SEC-SECUREBOOT.off.caution
     else
-        partial SEC-SECUREBOOT "Secure Boot state not readable"
+        partial SEC-SECUREBOOT "$(t SEC-SECUREBOOT.partial.1)"
     fi
 else
-    finding INFO SEC-SECUREBOOT "Legacy BIOS boot (no UEFI): Secure Boot not applicable"
+    finding INFO SEC-SECUREBOOT "$(t SEC-SECUREBOOT.bios.title)"
+    impact SEC-SECUREBOOT.bios.impact
 fi
 
 # ---- AppArmor ---------------------------------------------------------------------------
 if [[ -r /sys/module/apparmor/parameters/enabled ]]; then
     if [[ "$(cat /sys/module/apparmor/parameters/enabled)" == Y ]]; then
-        finding OK SEC-APPARMOR "AppArmor enabled"
+        finding OK SEC-APPARMOR "$(t SEC-APPARMOR.ok.title)"
     else
-        finding WARNING SEC-APPARMOR "AppArmor disabled" \
-            "Ubuntu relies on AppArmor to confine services and snaps. Check the kernel command line for apparmor=0."
+        finding WARNING SEC-APPARMOR "$(t SEC-APPARMOR.warn.title)"
+        impact SEC-APPARMOR.warn.impact
+        action "cat /proc/cmdline" SEC-APPARMOR.warn.act.1
+        action "" SEC-APPARMOR.warn.act.2
+        action "sudo update-grub" SEC-APPARMOR.warn.act.3
+        caution SEC-APPARMOR.warn.caution
     fi
 fi
 
 # ---- privileged accounts ------------------------------------------------------------------
 uid0="$(awk -F: '$3 == 0 && $1 != "root" {print $1}' /etc/passwd)"
 if [[ -n "$uid0" ]]; then
-    finding CRITICAL SEC-UID0 "Account(s) other than root with UID 0: ${uid0//$'\n'/, }" \
-        "A second UID 0 account is a classic backdoor. Investigate immediately."
+    finding CRITICAL SEC-UID0 "$(t SEC-UID0.crit.title accounts="${uid0//$'\n'/, }")"
+    impact SEC-UID0.crit.impact
+    # A single account is named in the commands; several stay generic.
+    uid0_cmd="<name>"
+    [[ "$uid0" != *$'\n'* ]] && uid0_cmd="$(safe_name "$uid0" "<name>")"
+    action "getent passwd ${uid0_cmd}" SEC-UID0.crit.act.1
+    action "sudo passwd -S ${uid0_cmd}" SEC-UID0.crit.act.2
+    action "sudo passwd -l ${uid0_cmd}" SEC-UID0.crit.act.3
+    caution SEC-UID0.crit.caution
 fi
 admins="$(getent group sudo admin wheel 2>/dev/null | cut -d: -f4 | tr ',' '\n' | grep . | sort -u | paste -sd ' ')"
-finding INFO SEC-ADMINS "Accounts with sudo rights: ${admins:-none}" \
-    "Check that every listed account is expected."
+finding INFO SEC-ADMINS "$(t SEC-ADMINS.info.title accounts="${admins:-$(t SEC-ADMINS.info.none)}")"
+impact SEC-ADMINS.info.impact
+if [[ -n "$admins" ]]; then
+    action "" SEC-ADMINS.info.act.1
+    action "sudo gpasswd -d <user> sudo" SEC-ADMINS.info.act.2
+    caution SEC-ADMINS.info.caution
+fi
 if [[ "$IS_ROOT" == 1 ]]; then
     empty_pw="$(awk -F: '$2 == "" {print $1}' /etc/shadow 2>/dev/null)"
     if [[ -n "$empty_pw" ]]; then
-        finding CRITICAL SEC-EMPTY-PW "Account(s) with an empty password: ${empty_pw//$'\n'/, }" \
-            "Anyone can log in as these accounts where password logins are allowed. Lock them ('sudo passwd -l <user>')."
+        finding CRITICAL SEC-EMPTY-PW "$(t SEC-EMPTY-PW.crit.title accounts="${empty_pw//$'\n'/, }")"
+        impact SEC-EMPTY-PW.crit.impact
+        # A single account is named in the commands; several stay generic.
+        empty_cmd="<name>"
+        [[ "$empty_pw" != *$'\n'* ]] && empty_cmd="$(safe_name "$empty_pw" "<name>")"
+        action "sudo passwd -S ${empty_cmd}" SEC-EMPTY-PW.crit.act.1
+        action "sudo passwd ${empty_cmd}" SEC-EMPTY-PW.crit.act.2
+        action "sudo passwd -l ${empty_cmd}" SEC-EMPTY-PW.crit.act.3
+        caution SEC-EMPTY-PW.crit.caution
     fi
 else
-    partial SEC-EMPTY-PW "accounts with empty passwords not checked (needs sudo)"
+    partial SEC-EMPTY-PW "$(t SEC-EMPTY-PW.partial.1)"
 fi
 
 # ---- SSH server --------------------------------------------------------------------------
@@ -84,19 +123,31 @@ if pkg_installed openssh-server; then
         sshd_cfg="$(run sshd -T)"          # effective configuration, includes drop-ins
     else
         sshd_cfg="$(cat /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | grep -v '^[[:space:]]*#' | tr '[:upper:]' '[:lower:]')"
-        partial SEC-SSHD-EFFECTIVE "effective sshd configuration needs sudo; files read directly (defaults not shown)"
+        partial SEC-SSHD-EFFECTIVE "$(t SEC-SSHD-EFFECTIVE.partial.1)"
     fi
     issues=""
     grep -qE '^permitrootlogin[[:space:]]+yes' <<<"$sshd_cfg" && issues+="PermitRootLogin yes; "
     grep -qE '^passwordauthentication[[:space:]]+yes' <<<"$sshd_cfg" && issues+="PasswordAuthentication yes; "
     if (( sshd_active > 0 )) && [[ -n "$issues" ]]; then
-        finding WARNING SEC-SSHD "SSH server running with weak settings: ${issues%; }" \
-            "Prefer key-only authentication ('PasswordAuthentication no') and no direct root login ('PermitRootLogin no' or 'prohibit-password')."
+        sshd_grep="sudo sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication) '"
+        finding WARNING SEC-SSHD "$(t SEC-SSHD.weak.title issues="${issues%; }")"
+        impact SEC-SSHD.weak.impact
+        action "$sshd_grep" SEC-SSHD.weak.act.1
+        action "" SEC-SSHD.weak.act.2
+        action "" SEC-SSHD.weak.act.3
+        action "sudo sshd -t" SEC-SSHD.weak.act.4
+        action "sudo systemctl reload ssh" SEC-SSHD.weak.act.5
+        caution SEC-SSHD.weak.caution
     elif (( sshd_active > 0 )); then
-        finding INFO SEC-SSHD "SSH server running" \
-            "Make sure it is needed on this machine; otherwise 'sudo systemctl disable --now ssh'."
+        finding INFO SEC-SSHD "$(t SEC-SSHD.running.title)"
+        impact SEC-SSHD.running.impact
+        action "systemctl status ssh" SEC-SSHD.running.act.1
+        action "sudo systemctl disable --now ssh.service ssh.socket" SEC-SSHD.running.act.2
+        caution SEC-SSHD.running.caution
     else
-        finding INFO SEC-SSHD "openssh-server installed but not running"
+        finding INFO SEC-SSHD "$(t SEC-SSHD.stopped.title)"
+        impact SEC-SSHD.stopped.impact
+        action "sudo apt remove openssh-server" SEC-SSHD.stopped.act.1
     fi
 fi
 
@@ -116,7 +167,11 @@ key_state() {
         *"BEGIN OPENSSH PRIVATE KEY"*)
             # openssh-key-v1: magic, then length-prefixed ciphername, kdfname,
             # kdfoptions, key count, public key blob (which starts with the type).
-            as_target sed -n '2,12p' -- "$f" 2>/dev/null | tr -d '\n\r' | head -c 560 \
+            # The END line is left out: a short key (ed25519) ends within these
+            # lines, and base64 implementations that reject the whole input on
+            # an invalid character (uutils) would then decode nothing, hiding
+            # an unprotected key.
+            as_target sed -n '2,12{/^-----/!p}' -- "$f" 2>/dev/null | tr -d '\n\r' | head -c 560 \
                 | base64 -d 2>/dev/null | perl -e '
                     local $/; my $d = <STDIN>; my $p = 15;
                     if (substr($d, 0, 15) ne "openssh-key-v1\0") { print "unknown ?\n"; exit }
@@ -140,8 +195,9 @@ ssh_dir="${TARGET_HOME}/.ssh"
 if [[ -d "$ssh_dir" && ! -L "$ssh_dir" ]]; then
     mode="$(stat -c '%a' "$ssh_dir")"
     if [[ "$mode" != 700 ]]; then
-        finding WARNING SEC-SSH-PERMS "${ssh_dir} has permissions ${mode} (expected 700)" \
-            "Fix with 'chmod 700 ${ssh_dir}'."
+        finding WARNING SEC-SSH-PERMS "$(t SEC-SSH-PERMS.dir.title dir="$ssh_dir" mode="$mode")"
+        impact SEC-SSH-PERMS.dir.impact
+        action "chmod 700 ~/.ssh" SEC-SSH-PERMS.dir.act.1 mode="$mode"
     fi
     no_pass=""; bad_perm=""; hw_keys=""; key_list=""; n_keys=0
     shopt -s nullglob
@@ -165,28 +221,38 @@ if [[ -d "$ssh_dir" && ! -L "$ssh_dir" ]]; then
     shopt -u nullglob
 
     if [[ -n "$no_pass" ]]; then
-        finding WARNING SEC-SSH-KEYS "SSH private key(s) without passphrase in ${ssh_dir}" \
-            "Any program running under this account can read and use them. Add a passphrase ('ssh-keygen -p -f <key>'), move them to an agent-backed vault (e.g. a password manager SSH agent), or delete keys that are no longer used (and revoke them where they were authorised)."
-        evidence "Unprotected keys" "${no_pass%$'\n'}"
+        finding WARNING SEC-SSH-KEYS "$(t SEC-SSH-KEYS.nopass.title dir="$ssh_dir")"
+        impact SEC-SSH-KEYS.nopass.impact
+        action "ssh-keygen -l -f ~/.ssh/<key-file>" SEC-SSH-KEYS.nopass.act.1
+        action "ssh-keygen -p -f ~/.ssh/<key-file>" SEC-SSH-KEYS.nopass.act.2
+        action "" SEC-SSH-KEYS.nopass.act.3
+        action "" SEC-SSH-KEYS.nopass.act.4
+        caution SEC-SSH-KEYS.nopass.caution
+        evidence "$(t SEC-SSH-KEYS.ev.1)" "${no_pass%$'\n'}"
     elif (( n_keys > 0 )); then
-        finding OK SEC-SSH-KEYS "${n_keys} SSH private key file(s), none stored unprotected" \
-            "Keys for servers or services that no longer exist should still be deleted (and revoked where they were authorised)."
+        finding OK SEC-SSH-KEYS "$(t SEC-SSH-KEYS.ok.title n="$n_keys")"
     else
-        finding OK SEC-SSH-KEYS "No SSH private key file in ${ssh_dir}"
+        finding OK SEC-SSH-KEYS "$(t SEC-SSH-KEYS.none.title dir="$ssh_dir")"
     fi
     if [[ -n "$hw_keys" ]]; then
-        finding INFO SEC-SSH-FIDO "Hardware-backed (FIDO) SSH key(s)" \
-            "These key files are useless without the physical security key, so no passphrase is required."
-        evidence "FIDO keys" "${hw_keys%$'\n'}"
+        finding INFO SEC-SSH-FIDO "$(t SEC-SSH-FIDO.info.title)"
+        impact SEC-SSH-FIDO.info.impact
+        evidence "$(t SEC-SSH-FIDO.ev.1)" "${hw_keys%$'\n'}"
     fi
     if [[ -n "$bad_perm" ]]; then
-        finding WARNING SEC-SSH-PERMS "SSH private key(s) readable by others" \
-            "Private keys must be 600. Fix with 'chmod 600 <key>'."
-        evidence "Keys and permissions" "${bad_perm%$'\n'}"
+        finding WARNING SEC-SSH-PERMS "$(t SEC-SSH-PERMS.keys.title)"
+        impact SEC-SSH-PERMS.keys.impact
+        action "ls -l ~/.ssh" SEC-SSH-PERMS.keys.act.1
+        action "chmod 600 ~/.ssh/<key-file>" SEC-SSH-PERMS.keys.act.2
+        evidence "$(t SEC-SSH-PERMS.ev.1)" "${bad_perm%$'\n'}"
     fi
     if [[ -n "$key_list" ]]; then
-        finding INFO SEC-SSH-INVENTORY "Inventory of SSH private key files (review for obsolete ones)"
-        evidence "Keys (name, type, protection, mode, date)" "${key_list%$'\n'}"
+        finding INFO SEC-SSH-INVENTORY "$(t SEC-SSH-INVENTORY.info.title)"
+        impact SEC-SSH-INVENTORY.info.impact
+        action "ssh-keygen -l -f ~/.ssh/<key-file>" SEC-SSH-INVENTORY.info.act.1
+        action "" SEC-SSH-INVENTORY.info.act.2
+        caution SEC-SSH-INVENTORY.info.caution
+        evidence "$(t SEC-SSH-INVENTORY.ev.1)" "${key_list%$'\n'}"
     fi
 fi
 
@@ -194,7 +260,10 @@ fi
 if [[ -d "$TARGET_HOME" ]]; then
     hmode="$(stat -c '%a' "$TARGET_HOME")"
     if (( (8#$hmode & 8#007) != 0 )); then
-        finding WARNING SEC-HOME-PERMS "Home directory ${TARGET_HOME} is accessible to other users (${hmode})" \
-            "Other local accounts and services can browse it. Ubuntu's default is 750: 'chmod 750 ${TARGET_HOME}'."
+        finding WARNING SEC-HOME-PERMS "$(t SEC-HOME-PERMS.warn.title home="$TARGET_HOME" mode="$hmode")"
+        impact SEC-HOME-PERMS.warn.impact
+        action "ls -ld ~" SEC-HOME-PERMS.warn.act.1
+        action "chmod 750 ~" SEC-HOME-PERMS.warn.act.2 mode="$hmode"
+        caution SEC-HOME-PERMS.warn.caution
     fi
 fi

@@ -1,5 +1,57 @@
 # Changelog
 
+## 2.7.0
+
+The tool still only diagnoses, and never runs a fix. It now explains each
+finding in plain words and proposes what to do about it, in the computer's
+language.
+
+### Explanations and proposed actions
+- Each finding that calls for a decision is split into three parts instead of
+  one paragraph: **what it means** (what you risk if you do nothing), **what
+  you can do** (commands to run yourself, each with what it does and whether
+  it can be undone; read-only commands and simulations first) and **before
+  you act** (what to check, simulate or back up).
+- New **action plan**: the critical findings, then the warnings, with their
+  consequence, actions and precautions. It is a section of the report, placed
+  after the summary, and it is printed in the terminal after the result line.
+  The new `--brief` option keeps the terminal to one line per finding.
+- Names that come from the system (package, snap, unit, account) are inserted
+  into a proposed command only when the finding concerns a single item and
+  the name is a plain one; otherwise the command keeps a placeholder such as
+  `<package>` and the items stay in the evidence. Names masked by
+  `--sanitize` (SSH key files, containers) never appear in a command.
+- The notes for an AI assistant gain a point: proposed actions are written by
+  the tool, unlike the content of code blocks, and remain proposals to
+  explain to the owner.
+
+### Languages
+- Report and terminal output are available in **English and French**. The
+  language is chosen by `--lang CODE`, then `REPORT_LANG` in `uhc.conf`, then
+  the computer's locale (the system default from cron or a timer), then
+  English. A language or a message without translation falls back to English.
+- Texts live in `lib/lang/<code>/*.lang`, plain `key=text` files that are
+  read and never executed. They are part of the code fingerprint, so the
+  fingerprint of an installed copy changes with this version.
+  `contrib/check-lang.sh` checks the catalogs (also in the CI workflow).
+- Finding IDs, severity words, proposed commands, `--help`, error messages,
+  the installation wizard and the log line stay in English.
+- Root runs: the language code is read before the environment is reset and
+  passed to the re-executed script as `UHC_LANG`, accepted only as two
+  lowercase letters.
+
+### Fixes
+- `SEC-SSH-KEYS` reported an unprotected **ed25519** key as fine on systems
+  whose `base64` rejects the whole input on an invalid character (uutils
+  coreutils, Ubuntu 25.10 and later): the END line of a short key was fed to
+  the decoder. The line is now left out.
+- Stopping the SSH server is proposed as `disable --now ssh.service
+  ssh.socket`: on recent releases the socket starts the server again on
+  demand.
+- When several filesystems are full, the actions are listed once.
+
+No finding ID or severity changed.
+
 ## 2.6.2
 
 Two false positives fixed.

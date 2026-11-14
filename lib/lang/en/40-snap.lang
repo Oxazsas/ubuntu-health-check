@@ -1,0 +1,45 @@
+# Messages of lib/checks/40-snap.sh. Format and rules: see common.lang.
+
+section.40-snap=Snap packages
+
+# ---- SNAP-ALL ----
+SNAP-ALL.partial.1=snap not installed or snapd not running
+
+# ---- SNAP-ERRORS ----
+SNAP-ERRORS.warn.title={n} failed snap operation(s) recently
+SNAP-ERRORS.warn.impact=A snap whose update fails stays on its old version, without the fixes of the newer one (security fixes included). Snap tries again on its own, but the same cause usually makes it fail again.
+SNAP-ERRORS.warn.act.1=Lists the recent snap operations (installations, updates, removals) with their result. The ID is in the first column. Read-only.
+SNAP-ERRORS.warn.act.2=Shows the steps of one operation, given its ID, and which step failed. Read-only.
+SNAP-ERRORS.warn.act.3=Updates all snaps now, once the cause is fixed (for example after closing the application that blocked its update). A snap that misbehaves after its update can be put back to its previous version with 'sudo snap revert' followed by its name.
+SNAP-ERRORS.warn.caution=Look at the date of each error in the evidence below: an old error may already have been fixed by a later update that worked. Run the first command again to see whether the problem is still there.
+SNAP-ERRORS.ev.1=snap changes (errors only)
+SNAP-ERRORS.ok.title=No failed snap operation in recent history
+SNAP-ERRORS.partial.1=snap operation history not readable
+
+# ---- SNAP-DUPLICATE ----
+SNAP-DUPLICATE.conflict.title=Software installed both as a snap and as a deb package
+SNAP-DUPLICATE.conflict.impact=Two copies of the same service run side by side and compete for the same resource. For example, two Bluetooth services claiming the same name on the system's internal message bus (D-Bus): the device can then work erratically, and updates of the snap keep failing.
+SNAP-DUPLICATE.conflict.act.1=Shows the services provided by the snap and whether they are running. Read-only.
+SNAP-DUPLICATE.conflict.act.2=Shows what the snap is connected to (other snaps, system resources), to check that nothing depends on it before removing it. Read-only.
+SNAP-DUPLICATE.conflict.act.3=Removes the snap and keeps the deb package. On a desktop, the deb is usually the one to keep for system services. Snap saves a copy of the snap's data first, listed by 'snap saved', and the snap can be installed again with 'sudo snap install' followed by its name.
+SNAP-DUPLICATE.conflict.caution=Remove only one of the two copies, and only after the second command showed nothing that depends on it. If several programs are listed below, handle them one at a time.
+SNAP-DUPLICATE.ev.1=Duplicates with a service on both sides
+SNAP-DUPLICATE.coexist.title=Software installed both as a snap and as a deb package (no service conflict)
+SNAP-DUPLICATE.coexist.impact=Both copies live side by side without competing services, which is often intended (snapd, for example). Keeping both uses disk space, and it can be unclear which of the two starts when you launch the program.
+SNAP-DUPLICATE.coexist.act.1=If you use only one of the two copies, you can remove the other. If you do not know why both are there, leave them: nothing is broken.
+SNAP-DUPLICATE.coexist.act.2=Before removing the snap, shows what it is connected to (other snaps, system resources), to check that nothing depends on it. Read-only.
+SNAP-DUPLICATE.ev.2=Duplicates
+
+# ---- SNAP-PUBLISHER ----
+SNAP-PUBLISHER.info.title=Snaps from non-verified publishers
+SNAP-PUBLISHER.info.impact=The Snap Store has not checked the identity of these publishers. This is not necessarily a problem (many snaps are maintained by their community), but a snap runs the code its publisher put in it, so you should trust each one.
+SNAP-PUBLISHER.info.act.1=Shows the publisher of the snap, its description and its contact or web page. Read-only.
+SNAP-PUBLISHER.info.act.2=Remove the snaps you do not use or whose publisher you do not know, with 'sudo snap remove' followed by the name. Keep the others.
+SNAP-PUBLISHER.ev.1=Snaps
+
+# ---- SNAP-CONFINEMENT ----
+SNAP-CONFINEMENT.info.title=Snaps running without strict confinement
+SNAP-CONFINEMENT.info.impact=Most snaps run in a closed space (confinement) that limits what they can reach on the computer. 'classic' snaps run without it, with the same access as a regular application: this is normal for development tools and command-line tools. 'devmode' turns that protection off, and is meant only for people developing the snap.
+SNAP-CONFINEMENT.info.act.1=Shows the publisher and the description of the snap, to find out why it runs this way. Read-only.
+SNAP-CONFINEMENT.info.act.2=A snap in 'devmode' that you did not install yourself for development deserves a closer look: if you do not need it, remove it with 'sudo snap remove' followed by its name.
+SNAP-CONFINEMENT.ev.1=Snaps

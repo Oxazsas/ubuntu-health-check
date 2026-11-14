@@ -1,0 +1,93 @@
+# Messages de lib/checks/55-persistence.sh. Format et règles : voir lib/lang/en/common.lang.
+# Les messages de --accept-jobs au terminal ne sont pas ici : ils restent en anglais.
+# Ton : une correspondance invite à vérifier, elle ne prouve jamais une infection.
+
+section.55-persistence=Persistance (tâches planifiées et lancées au démarrage)
+
+# ---- SVC-PERSISTENCE-SCOPE ----
+SVC-PERSISTENCE-SCOPE.partial.1=crontabs de root et des autres utilisateurs non examinées (sudo nécessaire)
+
+# ---- actions communes à SVC-PERSISTENCE et SVC-PERSISTENCE-NEW ----
+SVC-PERSISTENCE.source.act.crontab=Affiche vos propres tâches planifiées (votre crontab), pour les tâches dont la source commence par « crontab ». Lecture seule.
+SVC-PERSISTENCE.source.act.crontab_user=Affiche la crontab d'un autre compte : remplacez <user> par le nom qui suit « crontab » dans la liste (root pour le compte administrateur). Lecture seule.
+SVC-PERSISTENCE.source.act.unit=Affiche le contenu complet d'un service du système, avec ses surcharges (drop-ins : fichiers placés dans un dossier en .service.d qui modifient un service). Pour une source comme « systemd system/foo.service.d/override.conf », donnez le nom du service, ici foo.service. Lecture seule.
+SVC-PERSISTENCE.source.act.user_unit=Même chose pour les sources qui commencent par « user systemd » (services lancés pour votre seule session). Lecture seule.
+SVC-PERSISTENCE.source.act.file=Pour les autres sources (fichiers de /etc/cron.d ou /etc/cron.daily, lancements automatiques de session, fichiers de démarrage du shell comme ~/.bashrc), ouvrez le fichier indiqué avec une visionneuse de texte, par exemple 'less' suivi de son chemin, et regardez la ligne indiquée.
+
+# ---- SVC-PERSISTENCE ----
+SVC-PERSISTENCE.warn.title={n} tâche(s) planifiée(s) ou lancée(s) au démarrage correspondant à des motifs de persistance
+SVC-PERSISTENCE.warn.impact=Ces tâches se relancent d'elles-mêmes (à heure fixe, au démarrage ou à la connexion), et leur commande a une forme qu'emploient souvent les programmes malveillants pour rester actifs sur un ordinateur : télécharger du code puis l'exécuter, envoyer du texte vers un shell, décoder du texte en base64, ouvrir une connexion réseau brute (/dev/tcp), un langage de script (python, perl...) qui va chercher une adresse sur Internet, un programme lancé depuis un dossier temporaire ou de cache, ou un appel réseau toutes les quelques minutes, au démarrage ou à la connexion. Des tâches légitimes de surveillance ou de maintien en service correspondent aussi : c'est une invitation à vérifier, pas un verdict. La raison de chaque correspondance figure entre crochets dans la liste ci-dessous.
+SVC-PERSISTENCE.warn.act.unknown=Si vous ne reconnaissez pas une tâche, ne la supprimez pas tout de suite. Gardez d'abord une copie du fichier ou de la crontab d'où elle vient, puis cherchez vers quoi pointe sa commande et comment elle est arrivée là (quel programme ou quelle personne l'a ajoutée, et quand). En cas de doute, demandez l'avis d'une personne de confiance avant de supprimer quoi que ce soit.
+SVC-PERSISTENCE.warn.act.known=Si vous reconnaissez une tâche, ajoutez son empreinte (première colonne de la liste) à la clé JOBS_ALLOW de uhc.conf, séparée des autres par des espaces, par exemple JOBS_ALLOW="3ae9b353616b". Elle sera alors listée comme autorisée (SVC-PERSISTENCE-ALLOWED) au lieu de déclencher cet avertissement.
+SVC-PERSISTENCE.warn.caution=Une correspondance ne prouve pas une infection, et l'absence de correspondance ne prouve pas le contraire : seules les lignes de commande sont lues, pas les scripts qu'elles lancent. Une empreinte couvre exactement une ligne : toute modification ultérieure de cette ligne (horaire, adresse, arguments) donne une nouvelle empreinte et fait revenir cet avertissement. Préférez JOBS_ALLOW à IGNORE_CHECKS, qui masquerait aussi les futures tâches malveillantes.
+SVC-PERSISTENCE.ev.1=Tâches à vérifier (empreinte, source, horaire/clé/ligne, programme, raison — arguments masqués)
+SVC-PERSISTENCE.ok.title=Aucune tâche planifiée ou lancée au démarrage ne correspond aux motifs de persistance connus ({n} commandes examinées)
+
+# ---- SVC-PERSISTENCE-ALLOWED ----
+SVC-PERSISTENCE-ALLOWED.info.title={n} tâche(s) correspondant à des motifs de persistance, autorisée(s) par JOBS_ALLOW
+SVC-PERSISTENCE-ALLOWED.info.impact=Ces tâches correspondent à un motif, mais leur empreinte figure dans JOBS_ALLOW, la liste des tâches déclarées connues dans uhc.conf. Ce fichier peut être modifié par n'importe quel programme lancé sous votre compte, qui pourrait y ajouter sa propre empreinte : c'est pourquoi les tâches autorisées restent toujours listées ici.
+SVC-PERSISTENCE-ALLOWED.info.act.1=Vérifiez que vous avez ajouté vous-même chacune de ces empreintes. Une entrée que vous n'avez pas ajoutée doit vous alerter : examinez la tâche à sa source, et retirez son empreinte de JOBS_ALLOW.
+SVC-PERSISTENCE-ALLOWED.ev.1=Tâches autorisées
+
+# ---- SVC-PERSISTENCE-VENDOR ----
+SVC-PERSISTENCE-VENDOR.info.title={n} correspondance(s) dans des fichiers intacts fournis par des paquets installés
+SVC-PERSISTENCE-VENDOR.info.impact=Ces fichiers correspondent à un motif, mais ils sont identiques octet pour octet à ce que leur paquet a installé (vérifié dans la base des paquets) : ils sont donc aussi fiables que le paquet lui-même. La tâche quotidienne de Google Chrome, par exemple, décode la clé de son dépôt avec base64. Si un tel fichier est modifié par la suite, il est signalé par un avertissement.
+SVC-PERSISTENCE-VENDOR.ev.1=Fichiers de paquets
+
+# ---- SVC-PERSISTENCE-STALE-ALLOW ----
+SVC-PERSISTENCE-STALE-ALLOW.info.title=Entrées de JOBS_ALLOW qui ne correspondent plus à aucune tâche : {fps}
+SVC-PERSISTENCE-STALE-ALLOW.info.impact=Les tâches autorisées par ces empreintes ont été supprimées ou modifiées. Une tâche modifiée réapparaît plus haut, avec sa nouvelle empreinte. Une empreinte oubliée autoriserait à nouveau exactement cette ligne si elle revenait.
+SVC-PERSISTENCE-STALE-ALLOW.info.act.1=Retirez ces empreintes de la clé JOBS_ALLOW de uhc.conf.
+
+# ---- SVC-PERSISTENCE-BASELINE ----
+SVC-PERSISTENCE-BASELINE.missing.title=Liste de référence des tâches absente alors qu'elle existait : recréée à partir de l'état actuel
+SVC-PERSISTENCE-BASELINE.missing.impact=La liste de référence des tâches planifiées et lancées au démarrage a été supprimée depuis l'exécution précédente. Tout ce qui a été ajouté entre-temps fait désormais partie de la nouvelle liste sans avoir été examiné. C'est précisément ce que ferait un programme qui cherche à cacher une tâche.
+SVC-PERSISTENCE-BASELINE.missing.act.1=Examinez attentivement l'inventaire des tâches ci-dessous (SVC-SCHEDULED), et regardez à sa source chaque entrée que vous ne reconnaissez pas.
+SVC-PERSISTENCE-BASELINE.missing.act.2=Lance un audit complet depuis la copie de l'outil qui appartient à root (raccourci proposé par l'assistant d'installation ; voir « Full audit with sudo » dans le README). Sa liste de référence est conservée dans cette copie, hors de portée des programmes lancés sous votre compte : elle n'est pas exposée à ce problème. L'audit ne modifie rien sur le système.
+SVC-PERSISTENCE-BASELINE.created.title=Liste de référence des tâches planifiées et lancées au démarrage créée ({n} commandes)
+SVC-PERSISTENCE-BASELINE.created.impact=Désormais, toute tâche qui apparaît ou change est signalée à chaque exécution, quelle que soit sa forme, jusqu'à ce que vous l'acceptiez avec --accept-jobs.
+SVC-PERSISTENCE-BASELINE.created.act.1=Parcourez une fois l'inventaire des tâches ci-dessous (SVC-SCHEDULED) : il est désormais considéré comme connu.
+SVC-PERSISTENCE-BASELINE.updated.title=Liste de référence mise à jour : {n} changement(s) accepté(s)
+SVC-PERSISTENCE-BASELINE.updated.impact=Accepté(s) avec --accept-jobs. Les changements qui ne figurent pas ici restent en attente et continuent d'être signalés.
+SVC-PERSISTENCE-BASELINE.ev.1=Acceptés
+
+# ---- SVC-PERSISTENCE-NEW ----
+SVC-PERSISTENCE-NEW.warn.title={n} tâche(s) planifiée(s) ou lancée(s) au démarrage nouvelle(s) ou modifiée(s) depuis la dernière acceptation
+SVC-PERSISTENCE-NEW.warn.impact=Ces tâches n'existaient pas, ou étaient différentes, lors de la dernière acceptation de la liste de référence. C'est signalé quelle que soit la forme de la commande, déguisée ou non : un programme qui veut se relancer tout seul doit ajouter ou modifier une telle entrée. Il s'agit souvent d'une modification que vous avez faite, ou d'un logiciel que vous avez installé.
+SVC-PERSISTENCE-NEW.warn.caution=N'acceptez que ce que vous avez vérifié : ce qui apparaît après la liste que vous avez confirmée reste en attente. Chaque acceptation est inscrite dans logs/uhc.log avec ses empreintes ; une acceptation que vous n'avez pas faite doit vous alerter.
+SVC-PERSISTENCE-NEW.ev.1=Tâches nouvelles ou modifiées (empreinte, source, horaire/clé, programme)
+SVC-PERSISTENCE-NEW.ok.title=Aucune tâche planifiée ou lancée au démarrage ajoutée ou modifiée depuis la dernière acceptation
+# Communes à SVC-PERSISTENCE-NEW, -NEW-SHELL, -NEW-PACKAGE et -REMOVED.
+SVC-PERSISTENCE-NEW.accept.act.user=Une fois la vérification faite, accepte les changements en attente dans la liste de référence. Lancez cette commande dans un terminal, depuis le dossier de l'outil (ou 'uhc --accept-jobs' si vous avez installé les raccourcis) : elle affiche la liste exacte des changements et ne l'accepte qu'après votre confirmation. Les changements acceptés ne sont plus signalés.
+SVC-PERSISTENCE-NEW.accept.act.user_fp=N'accepte que les changements dont vous donnez les empreintes (première colonne de la liste, séparées par des espaces) ; les autres restent en attente.
+SVC-PERSISTENCE-NEW.accept.act.root=Une fois la vérification faite, accepte les changements en attente dans la liste de référence des audits complets, conservée dans la copie de l'outil qui appartient à root : uhc-root lance cette copie avec sudo, comme pour cet audit. Dans un terminal, la commande affiche la liste exacte des changements et ne l'accepte qu'après votre confirmation. Les changements acceptés ne sont plus signalés.
+SVC-PERSISTENCE-NEW.accept.act.root_fp=N'accepte que les changements dont vous donnez les empreintes (première colonne de la liste, séparées par des espaces) ; les autres restent en attente.
+
+# ---- SVC-PERSISTENCE-NEW-SHELL ----
+SVC-PERSISTENCE-NEW-SHELL.info.title={n} ligne(s) nouvelle(s) ou modifiée(s) dans les fichiers de démarrage du shell
+SVC-PERSISTENCE-NEW-SHELL.info.impact=Des lignes ont été ajoutées ou modifiées depuis la dernière acceptation dans des fichiers comme ~/.bashrc, ~/.bash_aliases ou ~/.profile. Ces fichiers s'exécutent chaque fois que vous ouvrez un terminal ou vous connectez. Ce sont en général vos propres modifications, ou celles d'un programme d'installation (les raccourcis de cet outil, par exemple).
+SVC-PERSISTENCE-NEW-SHELL.info.act.1=Ouvrez le fichier indiqué à la ligne donnée (par exemple avec 'less' suivi de son chemin) et vérifiez que vous savez ce que fait la ligne.
+SVC-PERSISTENCE-NEW-SHELL.ev.1=Lignes nouvelles ou modifiées
+
+# ---- SVC-PERSISTENCE-NEW-PACKAGE ----
+SVC-PERSISTENCE-NEW-PACKAGE.info.title={n} ligne(s) de tâches modifiée(s) par des mises à jour de paquets
+SVC-PERSISTENCE-NEW-PACKAGE.info.impact=Ces lignes viennent de fichiers fournis par des paquets installés, et ces fichiers sont intacts : ils ont changé avec une mise à jour de paquet. Elles sont listées pour garder une trace : un dépôt tiers compromis apparaîtrait ici.
+SVC-PERSISTENCE-NEW-PACKAGE.ev.1=Modifiées par des mises à jour de paquets
+
+# ---- SVC-PERSISTENCE-REMOVED ----
+SVC-PERSISTENCE-REMOVED.info.title={n} commande(s) supprimée(s) ou modifiée(s) depuis la dernière acceptation
+SVC-PERSISTENCE-REMOVED.info.impact=Listées pour être complet : ces commandes figuraient dans la liste de référence et ne sont plus retrouvées. Une commande modifiée apparaît aussi comme nouvelle.
+SVC-PERSISTENCE-REMOVED.ev.1=Supprimées
+
+# ---- SVC-AT-JOBS ----
+SVC-AT-JOBS.info.title={n} tâche(s) « at » en attente
+SVC-AT-JOBS.info.impact=Les tâches « at » sont des commandes programmées pour s'exécuter une seule fois, à une heure donnée. Cet outil n'examine pas leur contenu, car il comprend tout l'environnement de la personne qui les a créées.
+SVC-AT-JOBS.info.act.1=Liste les tâches « at » en attente avec leur numéro, leur date et leur heure. Avec sudo, la commande liste aussi celles des autres comptes. Lecture seule.
+SVC-AT-JOBS.info.act.2=Affiche le contenu d'une tâche, d'après son numéro donné par la première commande : l'environnement vient d'abord, la commande elle-même se trouve à la fin. Lecture seule.
+SVC-AT-JOBS.info.caution=Ce contenu peut comprendre des mots de passe ou des clés d'accès gardés dans des variables d'environnement : ne le collez pas tel quel dans un message, ni dans une conversation avec un assistant.
+
+# ---- SVC-SCHEDULED ----
+SVC-SCHEDULED.info.title=Tâches planifiées et lancées au démarrage (repérez les entrées inconnues ou obsolètes)
+SVC-SCHEDULED.info.impact=Voici ce qui se lance tout seul sur cet ordinateur, relevé dans les crontabs, /etc/crontab, /etc/cron.d, les dossiers /etc/cron.hourly, daily, weekly et monthly, les services systemd et leurs surcharges (système et utilisateur) et les lancements automatiques de session, plus les minuteries systemd (timers). Les fichiers de démarrage du shell sont examinés aussi, mais leurs lignes n'apparaissent dans ce rapport que si elles correspondent à un motif ou changent. Seules les lignes de commande sont examinées, pas le contenu des scripts qu'elles lancent, et des commandes déguisées peuvent échapper aux motifs.
+SVC-SCHEDULED.info.act.1=Repérez les entrées que vous ne reconnaissez pas, ou qui appartiennent à des logiciels que vous avez retirés. Pour une entrée inconnue, renseignez-vous sur le nom du programme et sa source avant de modifier quoi que ce soit.
+SVC-SCHEDULED.ev.1=Tâches (empreinte, source, horaire/clé, programme — arguments masqués)

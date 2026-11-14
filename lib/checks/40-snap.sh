@@ -2,24 +2,42 @@
 # -----------------------------------------------------------------------------
 # 40-snap.sh — snap health: failed refreshes, snap/deb duplicates (two
 # daemons fighting for the same resource), publishers and confinement.
+#
+# Texts: lib/lang/*/40-snap.lang (keys SNAP-*, section.40-snap).
 # -----------------------------------------------------------------------------
 
-section "Snap packages"
+section "$(t section.40-snap)"
+
+# snap_cmd_name LIST PLACEHOLDER — the first word of LIST, for a proposed
+# command, when LIST has a single line; PLACEHOLDER when it has several (the
+# list itself is in the evidence) or when the name is not a plain name.
+snap_cmd_name() {
+    if [[ "$1" == *$'\n'* ]]; then
+        printf '%s' "$2"
+    else
+        safe_name "${1%% *}" "$2"
+    fi
+}
 
 if ! have snap || ! snap list >/dev/null 2>&1; then
-    partial SNAP-ALL "snap not installed or snapd not running"
+    partial SNAP-ALL "$(t SNAP-ALL.partial.1)"
 else
     # ---- failed operations ------------------------------------------------------
     # 'snap changes' lists recent operations; repeated errors usually mean an
     # auto-refresh that keeps failing (running app, service conflict, ...).
     if ! snap_changes="$(run snap changes)"; then
-        partial SNAP-ERRORS "snap operation history not readable"
+        partial SNAP-ERRORS "$(t SNAP-ERRORS.partial.1)"
     elif snap_errors="$(awk 'NR>1 && $2=="Error"' <<<"$snap_changes")"; [[ -n "$snap_errors" ]]; then
-        finding WARNING SNAP-ERRORS "$(wc -l <<<"$snap_errors") failed snap operation(s) recently" \
-            "Snaps that fail to refresh stay on old versions. Inspect with 'snap tasks <ID>' (the ID is the first column) to find the failing step."
-        evidence "snap changes (errors only)" "$snap_errors"
+        change_id="$(snap_cmd_name "$snap_errors" "<ID>")"
+        finding WARNING SNAP-ERRORS "$(t SNAP-ERRORS.warn.title n="$(wc -l <<<"$snap_errors")")"
+        impact SNAP-ERRORS.warn.impact
+        action "snap changes" SNAP-ERRORS.warn.act.1
+        action "snap tasks ${change_id}" SNAP-ERRORS.warn.act.2
+        action "sudo snap refresh" SNAP-ERRORS.warn.act.3
+        caution SNAP-ERRORS.warn.caution
+        evidence "$(t SNAP-ERRORS.ev.1)" "$snap_errors"
     else
-        finding OK SNAP-ERRORS "No failed snap operation in recent history"
+        finding OK SNAP-ERRORS "$(t SNAP-ERRORS.ok.title)"
     fi
 
     # ---- same software installed as snap AND deb ----------------------------------
@@ -52,14 +70,22 @@ else
         fi
     done < <(snap list 2>/dev/null | awk 'NR>1{print $1}')
     if [[ -n "$dupes_conflict" ]]; then
-        finding WARNING SNAP-DUPLICATE "Software installed both as a snap and as a deb package" \
-            "Two copies of the same service can conflict (for example two Bluetooth daemons competing for the same D-Bus name, which makes snap refreshes fail). Usually keep the deb for system services on a desktop and remove the snap, after checking nothing depends on it ('snap connections <name>')."
-        evidence "Duplicates with a service on both sides" "${dupes_conflict%$'\n'}"
+        dup_name="$(snap_cmd_name "${dupes_conflict%$'\n'}" "<name>")"
+        finding WARNING SNAP-DUPLICATE "$(t SNAP-DUPLICATE.conflict.title)"
+        impact SNAP-DUPLICATE.conflict.impact
+        action "snap services ${dup_name}" SNAP-DUPLICATE.conflict.act.1
+        action "snap connections ${dup_name}" SNAP-DUPLICATE.conflict.act.2
+        action "sudo snap remove ${dup_name}" SNAP-DUPLICATE.conflict.act.3
+        caution SNAP-DUPLICATE.conflict.caution
+        evidence "$(t SNAP-DUPLICATE.ev.1)" "${dupes_conflict%$'\n'}"
     fi
     if [[ -n "$dupes" ]]; then
-        finding INFO SNAP-DUPLICATE "Software installed both as a snap and as a deb package (no service conflict)" \
-            "Both copies coexist without competing services, which is often intended (snapd, for example). Keeping both costs disk space and can make it unclear which version is launched."
-        evidence "Duplicates" "${dupes%$'\n'}"
+        dup_name="$(snap_cmd_name "${dupes%$'\n'}" "<name>")"
+        finding INFO SNAP-DUPLICATE "$(t SNAP-DUPLICATE.coexist.title)"
+        impact SNAP-DUPLICATE.coexist.impact
+        action "" SNAP-DUPLICATE.coexist.act.1
+        action "snap connections ${dup_name}" SNAP-DUPLICATE.coexist.act.2
+        evidence "$(t SNAP-DUPLICATE.ev.2)" "${dupes%$'\n'}"
     fi
 
     # ---- publishers and confinement -------------------------------------------------
@@ -68,14 +94,20 @@ else
     snap_table="$(snap list 2>/dev/null)"
     unverified="$(awk 'NR>1 && $5 !~ /(✓|\*)$/ && $5 != "-" {print $1" (publisher: "$5")"}' <<<"$snap_table")"
     if [[ -n "$unverified" ]]; then
-        finding INFO SNAP-PUBLISHER "Snaps from non-verified publishers" \
-            "Not necessarily a problem (community-maintained snaps), but make sure you trust each publisher."
-        evidence "Snaps" "$unverified"
+        snap_name="$(snap_cmd_name "$unverified" "<name>")"
+        finding INFO SNAP-PUBLISHER "$(t SNAP-PUBLISHER.info.title)"
+        impact SNAP-PUBLISHER.info.impact
+        action "snap info ${snap_name}" SNAP-PUBLISHER.info.act.1
+        action "" SNAP-PUBLISHER.info.act.2
+        evidence "$(t SNAP-PUBLISHER.ev.1)" "$unverified"
     fi
     loose="$(awk 'NR>1 && ($6 ~ /devmode|jailmode|classic/) {print $1" ("$6")"}' <<<"$snap_table")"
     if [[ -n "$loose" ]]; then
-        finding INFO SNAP-CONFINEMENT "Snaps running without strict confinement" \
-            "'classic' snaps have the same access as a regular application (normal for IDEs and CLI tools); 'devmode' disables confinement and should not be used outside development."
-        evidence "Snaps" "$loose"
+        snap_name="$(snap_cmd_name "$loose" "<name>")"
+        finding INFO SNAP-CONFINEMENT "$(t SNAP-CONFINEMENT.info.title)"
+        impact SNAP-CONFINEMENT.info.impact
+        action "snap info ${snap_name}" SNAP-CONFINEMENT.info.act.1
+        action "" SNAP-CONFINEMENT.info.act.2
+        evidence "$(t SNAP-CONFINEMENT.ev.1)" "$loose"
     fi
 fi

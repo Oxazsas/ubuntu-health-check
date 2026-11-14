@@ -1,0 +1,89 @@
+# Messages de lib/checks/60-network.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.60-network=Exposition réseau
+
+# ---- NET-FIREWALL : comment l'état du pare-feu a été déterminé (inséré dans d'autres textes) ----
+NET-FIREWALL.detail.1=ufw actif
+NET-FIREWALL.detail.2=ufw inactif
+NET-FIREWALL.detail.3=ufw activé dans /etc/ufw/ufw.conf, règles illisibles sans sudo
+NET-FIREWALL.detail.4=ufw désactivé dans /etc/ufw/ufw.conf
+NET-FIREWALL.detail.5=firewalld en marche
+
+# ---- NET-LISTEN ----
+NET-LISTEN.crit.title=Des services TCP sont joignables depuis le réseau et AUCUN pare-feu n'est actif
+NET-LISTEN.crit.impact=Les programmes listés ci-dessous attendent des connexions venant d'autres machines (un « port en écoute »), et aucun pare-feu ne les filtre. N'importe qui sur votre réseau local peut les joindre, et Internet aussi en IPv6 si votre box ne filtre pas. Une faille ou un mot de passe faible dans l'un d'eux suffit pour entrer.
+NET-LISTEN.warn.title=Des services TCP écoutent en dehors de localhost
+NET-LISTEN.warn.impact_fw=Les programmes listés ci-dessous attendent des connexions venant d'autres machines (un « port en écoute »). Le pare-feu est actif ({detail}), mais il laisse passer ce que ses règles autorisent : ces ports sont joignables depuis votre réseau.
+NET-LISTEN.warn.impact_nofw=Les programmes listés ci-dessous attendent des connexions venant d'autres machines (un « port en écoute »). L'audit n'a pas pu déterminer si un pare-feu les filtre : considérez qu'ils sont joignables depuis votre réseau.
+NET-LISTEN.exposed.act.1=Liste les ports en écoute et le programme derrière chacun. Lecture seule.
+NET-LISTEN.exposed.act.2=Arrête un service dont vous n'avez pas besoin et l'empêche de se relancer au prochain démarrage (remplacez <service> par son nom, par exemple apache2). Réversible : la même commande avec enable au lieu de disable.
+NET-LISTEN.exposed.act.3=Pour un programme que vous n'utilisez que sur cet ordinateur (serveur de développement, base de données), réglez-le pour qu'il écoute sur 127.0.0.1 : il n'est alors joignable que depuis cet ordinateur.
+NET-LISTEN.crit.act.4=Activez un pare-feu : les étapes sont détaillées sous NET-FIREWALL, plus bas dans cette section.
+NET-LISTEN.warn.act.4=Pour un port qui doit rester ouvert (par exemple 22/tcp pour l'accès à distance par SSH), ajoutez-le à ALLOWED_PORTS dans uhc.conf : il apparaît alors comme attendu et sort de cet avertissement.
+NET-LISTEN.exposed.caution=Si vous administrez cet ordinateur à distance, n'arrêtez pas le service SSH (port 22) ni celui par lequel vous êtes connecté : vous perdriez l'accès à la machine.
+NET-LISTEN.ev.1=Sockets TCP en écoute (protocole, adresse:port, processus)
+NET-LISTEN.ok.title=Aucun service TCP n'écoute en dehors de localhost
+NET-LISTEN.partial.1=ports en écoute non vérifiés (ss indisponible)
+NET-LISTEN.partial.2=ports en écoute non vérifiés (échec de ss)
+NET-LISTEN-PROC.partial.1=les noms des processus en écoute demandent sudo
+
+# ---- NET-LISTEN-EXPECTED ----
+NET-LISTEN-EXPECTED.ok.title=Ports en écoute déclarés comme attendus (ALLOWED_PORTS)
+NET-LISTEN-EXPECTED.ev.1=Attendus
+
+# ---- NET-UDP ----
+NET-UDP.info.title=Des ports UDP sont ouverts en dehors de localhost
+NET-UDP.info.impact=Certains programmes reçoivent du trafic UDP venant d'autres machines : DNS, VPN, jeux, serveurs multimédias... Ils sont joignables depuis votre réseau. C'est normal si vous vous en servez.
+NET-UDP.info.act.1=Liste les ports UDP ouverts et le programme derrière chacun. Lecture seule.
+NET-UDP.info.act.2=Arrêtez les programmes que vous ne reconnaissez pas ou dont vous ne vous servez plus. Pour un port attendu (par exemple 51820/udp pour un VPN WireGuard), ajoutez-le à ALLOWED_PORTS dans uhc.conf.
+NET-UDP.ev.1=Sockets UDP
+
+# ---- NET-UDP-DISCOVERY ----
+NET-UDP-DISCOVERY.info.title=Sockets de découverte locale et DHCP ouverts (mDNS, DHCP, SSDP)
+NET-UDP-DISCOVERY.info.impact=Normal sur un poste de bureau. Avahi (mDNS) trouve les imprimantes et les autres machines par leur nom en « .local », et NetworkManager obtient une adresse par DHCP. À savoir : ufw laisse entrer le mDNS par défaut, donc les autres machines du réseau local voient cet ordinateur.
+NET-UDP-DISCOVERY.info.act.1=Seulement si vous n'utilisez jamais les noms en « .local » ni la découverte réseau : arrête Avahi et l'empêche de se lancer au démarrage. Réversible : la même commande avec enable au lieu de disable.
+NET-UDP-DISCOVERY.info.caution=Sans Avahi, les imprimantes réseau et les dossiers partagés risquent de ne plus être trouvés automatiquement.
+NET-UDP-DISCOVERY.ev.1=Sockets
+
+# ---- NET-FIREWALL ----
+NET-FIREWALL.ok.title=Pare-feu actif ({detail})
+NET-FIREWALL.warn.title=Aucun pare-feu actif
+NET-FIREWALL.warn.impact=Un pare-feu décide quelles connexions venant d'autres machines peuvent entrer. Rien n'est exposé pour l'instant, mais tout service lancé plus tard (par vous ou par un programme que vous installez) sera immédiatement joignable depuis le réseau.
+NET-FIREWALL.crit.title=Aucun pare-feu actif alors que des services sont exposés (voir plus haut)
+NET-FIREWALL.crit.impact=Un pare-feu décide quelles connexions venant d'autres machines peuvent entrer. Sans lui, les services listés sous NET-LISTEN sont ouverts à tout votre réseau.
+NET-FIREWALL.off.act.1=Affiche l'état du pare-feu ufw et ses règles. Lecture seule.
+NET-FIREWALL.off.act.2=Règle le pare-feu pour refuser les connexions entrantes qu'aucune règle n'autorise. Prend effet une fois le pare-feu activé. Réversible avec 'sudo ufw default allow incoming'.
+NET-FIREWALL.off.act.3=Laisse cet ordinateur ouvrir librement des connexions vers l'extérieur (web, mises à jour). C'est le réglage habituel.
+NET-FIREWALL.off.act.4=Seulement si vous vous connectez à cet ordinateur à distance par SSH : autorise les connexions SSH. À lancer avant d'activer le pare-feu.
+NET-FIREWALL.off.act.5=Active le pare-feu, tout de suite et à chaque démarrage. Réversible avec 'sudo ufw disable'.
+NET-FIREWALL.off.caution=Sur un ordinateur administré à distance par SSH, activer le pare-feu sans avoir autorisé SSH coupe votre accès : lancez 'sudo ufw allow OpenSSH' avant 'sudo ufw enable' (ufw demande une confirmation quand il risque de couper une session SSH). Autorisez aussi les autres ports que d'autres machines doivent joindre (par exemple 'sudo ufw allow 8080/tcp').
+NET-FIREWALL.partial.1=état du pare-feu inconnu (ufw et firewalld introuvables, ou règles nftables personnalisées ; lancez avec sudo)
+
+# ---- NET-FW-POLICY ----
+NET-FW-POLICY.warn.title=La politique par défaut du pare-feu accepte les connexions entrantes
+NET-FW-POLICY.warn.impact=Le pare-feu est actif, mais il laisse entrer toute connexion qu'aucune règle ne bloque. En pratique, il ne protège presque rien.
+NET-FW-POLICY.warn.act.1=Affiche la politique et les règles actuelles. Lecture seule.
+NET-FW-POLICY.warn.act.2=Seulement si vous vous connectez à cet ordinateur à distance par SSH : autorise les connexions SSH. À lancer avant la commande suivante.
+NET-FW-POLICY.warn.act.3=Refuse les connexions entrantes qu'aucune règle n'autorise. Réversible avec 'sudo ufw default allow incoming'.
+NET-FW-POLICY.warn.caution=Avant de refuser les connexions entrantes, autorisez ce que d'autres machines doivent encore joindre (SSH avec 'sudo ufw allow OpenSSH', les autres ports avec 'sudo ufw allow <port>/tcp'). Sinon, sur un ordinateur administré à distance, vous perdez l'accès.
+
+# ---- NET-FW-RULES ----
+NET-FW-RULES.info.title={n} règle(s) de pare-feu définie(s)
+NET-FW-RULES.info.impact=Pour information. Chaque règle laisse entrer (ou bloque) les connexions sur un port ; la liste figure ci-dessous.
+NET-FW-RULES.ev.1=Règles ufw
+NET-FW-RULES.partial.1=règles du pare-feu illisibles sans sudo
+
+# ---- NET-FW-STALE ----
+NET-FW-STALE.info.title=Le pare-feu autorise des ports sur lesquels rien n'écoute
+NET-FW-STALE.info.impact=Ces règles sont sans doute les restes d'un programme désinstallé. Si un autre programme démarre plus tard sur l'un de ces ports, il sera aussitôt joignable depuis le réseau, sans que vous l'ayez décidé.
+NET-FW-STALE.info.act.1=Liste les règles du pare-feu avec un numéro. Lecture seule.
+NET-FW-STALE.info.act.2=Supprime une règle qui autorise un port (remplacez <rule> par le port tel qu'il apparaît ci-dessous, par exemple 8080/tcp). Réversible avec 'sudo ufw allow <rule>'.
+NET-FW-STALE.info.caution=Un programme peut simplement être arrêté en ce moment (serveur occasionnel, jeu). Ne supprimez que les règles des programmes dont vous ne vous servez plus.
+NET-FW-STALE.ev.1=Ports autorisés mais inutilisés
+
+# ---- NET-IPV6 ----
+NET-IPV6.info.title=Adresse(s) IPv6 publique(s) attribuée(s)
+NET-IPV6.info.impact=En IPv6, votre box ne cache pas cet ordinateur derrière une adresse partagée (pas de NAT) : les services qui écoutent sur [::] ou * peuvent être joignables depuis Internet, sauf si le pare-feu IPv6 de la box ou celui de cet ordinateur les bloque.
+NET-IPV6.info.act.1=Gardez le pare-feu de cet ordinateur activé.
+NET-IPV6.info.act.2=Dans les réglages de votre box, vérifiez que son pare-feu IPv6 bloque les connexions entrantes (c'est en général le réglage par défaut).
+NET-IPV6.ev.1=Adresses IPv6 globales
