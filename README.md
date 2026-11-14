@@ -305,14 +305,15 @@ message.
 
 ### System
 
-| ID            | Check                                                            |
-| ------------- | ---------------------------------------------------------------- |
-| `SYS-OS`      | Distribution is Ubuntu                                           |
-| `SYS-EOL`     | Days left before end of standard support                         |
-| `SYS-RELEASE` | A newer LTS release exists                                       |
-| `SYS-REBOOT`  | Reboot required to activate installed updates                    |
-| `SYS-TIME`    | Clock synchronised with NTP                                      |
-| `SYS-DISK`    | Usage of `/`, `/boot`, `/boot/efi`, `/var`, `/home`, Docker data |
+| ID               | Check                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SYS-OS`         | Distribution is Ubuntu                                                                                                                                 |
+| `SYS-EOL`        | Days left before end of standard support                                                                                                               |
+| `SYS-RELEASE`    | A newer LTS release exists                                                                                                                             |
+| `SYS-REBOOT`     | Reboot required to activate installed updates                                                                                                          |
+| `SYS-TIME`       | Clock synchronised with NTP                                                                                                                            |
+| `SYS-DISK`       | Usage of `/`, `/boot`, `/boot/efi`, `/var`, `/home`, Docker data                                                                                       |
+| `SYS-DISK-USAGE` | Only when a filesystem is above `DISK_WARN`: measured size of what can be freed (disabled snap revisions, `~/snap`, Docker, older kernels, journal, apt cache), largest first; the matching commands are proposed under `SYS-DISK` |
 
 ### Kernel
 
@@ -351,7 +352,9 @@ message.
 
 | ID                 | Check                                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------------------ |
-| `SNAP-ERRORS`      | Failed snap operations (usually repeated refresh failures)                                             |
+| `SNAP-ERRORS`      | Failed snap operations (usually repeated refresh failures; told apart when the errors point to the Snap Store or the network) |
+| `SNAP-REFRESH`     | Snaps not refreshed for more than `SNAP_REFRESH_MAX_AGE` days, or refreshes on hold (WARNING for all snaps, INFO for some)  |
+| `SNAP-BRANCH`      | Snaps following a channel branch made for another Ubuntu release (e.g. `latest/stable/ubuntu-25.10` on 26.04) |
 | `SNAP-DUPLICATE`   | Same software installed as snap **and** deb (warning when both provide a service, otherwise info)      |
 | `SNAP-PUBLISHER`   | Snaps from non-verified publishers                                                                     |
 | `SNAP-CONFINEMENT` | Snaps in classic or devmode confinement                                                                |
@@ -536,6 +539,9 @@ keys (thresholds, notification level, expected ports, silenced checks, ignored
 packages, report retention, language) are documented in
 [`uhc.conf.example`](uhc.conf.example). Invalid values are rejected and the
 default is kept.
+
+`SNAP_REFRESH_MAX_AGE` (days, default 14) sets how old the last snap refresh
+may be before `SNAP-REFRESH` reports it.
 
 Typical use: silence an accepted risk you cannot fix right now.
 

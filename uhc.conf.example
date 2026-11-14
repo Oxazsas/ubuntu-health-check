@@ -28,6 +28,10 @@ APT_LISTS_MAX_AGE=7
 # Report when more kernel images than this are installed.
 OLD_KERNELS_WARN=3
 
+# Report when snaps have not been refreshed for more than this (days).
+# Snap normally refreshes them several times a day.
+SNAP_REFRESH_MAX_AGE=14
+
 # Ports that are expected to listen on the network (port/protocol),
 # e.g. an SSH server on a machine you administer remotely.
 # ALLOWED_PORTS="22/tcp 5353/udp"

@@ -27,7 +27,7 @@
 
 set -uo pipefail
 
-UHC_VERSION="2.7.0"
+UHC_VERSION="2.8.0"
 
 # Public repository used by the root installation wizard (preferred source:
 # the code goes straight from the repository to a root-owned folder). Set it in
@@ -128,6 +128,7 @@ DISK_WARN=85             # % used on a filesystem that triggers a WARNING
 DISK_CRIT=95             # % used that triggers a CRITICAL
 APT_LISTS_MAX_AGE=7      # days before APT package lists are considered stale
 OLD_KERNELS_WARN=3       # installed kernel images above which to report
+SNAP_REFRESH_MAX_AGE=14  # days without a snap refresh before it is reported
 ALLOWED_PORTS=""         # listening ports considered expected, e.g. "22/tcp"
 IGNORE_CHECKS=""         # finding IDs to silence, e.g. "SEC-DISK-ENC"
 IGNORE_PACKAGES=""       # packages to leave out of the obsolete-package list
@@ -341,7 +342,7 @@ load_config() {
         value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/')"
         case "$key" in
             # No leading zero: Bash would read "08" as an invalid octal number.
-            KEEP_REPORTS|DISK_WARN|DISK_CRIT|APT_LISTS_MAX_AGE|OLD_KERNELS_WARN|MAX_EVIDENCE_LINES|CMD_TIMEOUT)
+            KEEP_REPORTS|DISK_WARN|DISK_CRIT|APT_LISTS_MAX_AGE|OLD_KERNELS_WARN|SNAP_REFRESH_MAX_AGE|MAX_EVIDENCE_LINES|CMD_TIMEOUT)
                 pattern='^(0|[1-9][0-9]{0,4})$' ;;
             NOTIFY_LEVEL)    pattern='^(critical|warning|none)$' ;;
             ALLOWED_PORTS)   pattern='^([0-9]{1,5}/(tcp|udp)( +|$))*$' ;;
@@ -368,6 +369,7 @@ load_config() {
     (( KEEP_REPORTS >= 1 )) || { echo "uhc: KEEP_REPORTS must be at least 1, using 1" >&2; KEEP_REPORTS=1; }
     (( MAX_EVIDENCE_LINES >= 1 )) || MAX_EVIDENCE_LINES=40
     (( CMD_TIMEOUT >= 1 )) || CMD_TIMEOUT=30
+    (( SNAP_REFRESH_MAX_AGE >= 1 )) || { echo "uhc: SNAP_REFRESH_MAX_AGE must be at least 1, using 14" >&2; SNAP_REFRESH_MAX_AGE=14; }
 }
 load_config "$CONFIG_FILE"
 

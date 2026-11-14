@@ -15,6 +15,46 @@ SNAP-ERRORS.warn.caution=Regardez la date de chaque erreur dans les données ci-
 SNAP-ERRORS.ev.1=snap changes (erreurs seulement)
 SNAP-ERRORS.ok.title=Aucune opération snap en échec dans l'historique récent
 SNAP-ERRORS.partial.1=historique des opérations snap illisible
+SNAP-ERRORS.net.impact=Les erreurs citent le Snap Store ou une panne réseau : le plus probable est que le store, ou la connexion de cet ordinateur jusqu'à lui, était indisponible au moment de la mise à jour. Les snaps restent sur leur version actuelle jusqu'à ce qu'une mise à jour réussisse, ce qui arrive en général tout seul à la tentative suivante.
+SNAP-ERRORS.net.act.1=Liste les opérations snap récentes avec leur résultat et leur date, pour voir si une mise à jour a réussi depuis. L'identifiant figure dans la première colonne. Lecture seule.
+SNAP-ERRORS.net.act.2=Affiche les étapes d'une opération, d'après son identifiant, et l'erreur réseau rencontrée. Lecture seule.
+SNAP-ERRORS.net.act.3=Une fois la connexion rétablie (un site web s'ouvre normalement), met à jour tous les snaps tout de suite au lieu d'attendre la prochaine tentative. Un snap qui fonctionne mal après sa mise à jour peut revenir à sa version précédente avec 'sudo snap revert' suivi de son nom.
+SNAP-ERRORS.net.caution=Il n'y a rien à réparer sur cet ordinateur si les erreurs ont cessé au retour du réseau. Si elles continuent alors que le réseau fonctionne, cherchez un proxy ou un pare-feu qui bloque api.snapcraft.io.
+SNAP-ERRORS.ev.2=Erreurs réseau trouvées dans les opérations
+
+# ---- SNAP-REFRESH ----
+SNAP-REFRESH.held.title=Les mises à jour des snaps sont suspendues
+SNAP-REFRESH.held.impact=Snap met normalement ses snaps à jour tout seul, plusieurs fois par jour. Tant que les mises à jour sont suspendues, les snaps gardent leur version actuelle, sans les corrections publiées depuis (correctifs de sécurité compris).
+SNAP-REFRESH.heldsome.title=Mises à jour suspendues pour {n} snap(s)
+SNAP-REFRESH.heldsome.impact=Les snaps cités ci-dessous gardent leur version actuelle, sans les corrections publiées depuis (correctifs de sécurité compris), tant que leur suspension n'est pas levée. Les autres snaps se mettent à jour normalement.
+SNAP-REFRESH.held.act.1=Indique la date de la dernière mise à jour des snaps, celle de la prochaine, et jusqu'à quand elles sont suspendues. Lecture seule.
+SNAP-REFRESH.held.act.2=Lève la suspension pour tous les snaps : les mises à jour automatiques reprennent. Réversible avec 'sudo snap refresh --hold'.
+SNAP-REFRESH.held.act.3=Lève la suspension d'un snap, cité ci-dessous. Réversible avec 'sudo snap refresh --hold' suivi de son nom.
+SNAP-REFRESH.held.caution=La suspension a peut-être été posée exprès : avant une présentation, sur une connexion limitée, ou pour garder une version qui fonctionne. Ne la levez que si vous savez pourquoi elle a été posée, ou si cette raison a disparu.
+SNAP-REFRESH.ev.1=Suspension pour tous les snaps
+SNAP-REFRESH.ev.all=tous les snaps, jusqu'au {until}
+SNAP-REFRESH.ev.2=Snaps suspendus un par un
+SNAP-REFRESH.stale.title=Snaps non mis à jour depuis {days} jours
+SNAP-REFRESH.stale.impact=Snap met normalement ses snaps à jour tout seul, plusieurs fois par jour. La dernière mise à jour date du {date} : les snaps n'ont pas les corrections publiées depuis (correctifs de sécurité compris).
+SNAP-REFRESH.stale.act.1=Indique la date de la dernière mise à jour des snaps et celle de la prochaine. Lecture seule.
+SNAP-REFRESH.stale.act.2=Liste les opérations snap récentes avec leur résultat, pour trouver une mise à jour qui a échoué. Lecture seule.
+SNAP-REFRESH.stale.act.3=Met à jour tous les snaps tout de suite. Un snap qui fonctionne mal après sa mise à jour peut revenir à sa version précédente avec 'sudo snap revert' suivi de son nom.
+SNAP-REFRESH.stale.caution=Un ordinateur resté longtemps éteint ou hors ligne ne met pas ses snaps à jour : dans ce cas, la première mise à jour à son retour suffit et il n'y a rien d'autre à faire.
+SNAP-REFRESH.ev.3=snap refresh --time
+SNAP-REFRESH.ok.title=Snaps mis à jour il y a {days} jour(s)
+SNAP-REFRESH.partial.1=calendrier des mises à jour snap illisible (échec de snap refresh --time)
+SNAP-REFRESH.partial.2=date de la dernière mise à jour des snaps inconnue
+
+# ---- SNAP-BRANCH ----
+SNAP-BRANCH.warn.title={n} snap(s) suivent une branche prévue pour une autre version d'Ubuntu (celle-ci est la {version})
+SNAP-BRANCH.warn.impact=Certains snaps suivent un canal prévu pour une version précise d'Ubuntu (son nom finit par ubuntu- et le numéro de version). Ceux-ci suivent la branche d'une autre version que la {version}, en général celle d'avant une mise à niveau : ils ne reçoivent plus les mises à jour prévues pour celle-ci.
+SNAP-BRANCH.warn.act.1=Affiche les canaux où ce snap est publié, et celui qu'il suit. Lecture seule (interroge le Snap Store).
+SNAP-BRANCH.warn.act.2=Fait passer le snap sur le canal principal de sa piste (la cible est indiquée ci-dessous pour chaque snap) : snap installe alors la version publiée pour tous. Réversible : 'sudo snap revert' suivi de son nom revient à la version précédente, et la même commande avec l'ancien canal indiqué ci-dessous le fait suivre à nouveau.
+SNAP-BRANCH.warn.caution=Si la première commande montre une branche pour cette version (ubuntu- suivi de votre numéro de version), vous pouvez la suivre à la place, en mettant son nom complet après --channel=. Traitez un snap à la fois.
+SNAP-BRANCH.ev.1=Snaps, canal suivi, canal proposé
+SNAP-BRANCH.ok.title=Aucun snap ne suit la branche d'une autre version d'Ubuntu que la {version}
+SNAP-BRANCH.partial.1=branches des canaux snap non vérifiées (numéro de version d'Ubuntu inconnu)
+SNAP-BRANCH.partial.2=certains canaux snap sont abrégés par snap list et n'ont pas pu être lus en entier
 
 # ---- SNAP-DUPLICATE ----
 SNAP-DUPLICATE.conflict.title=Logiciel installé à la fois en snap et en paquet deb

@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.8.0
+
+Three new snap checks and a breakdown of what can be freed when a disk fills
+up. Every new command is read-only and answered locally: no new network
+access.
+
+### Snaps
+- New `SNAP-REFRESH` (WARNING): the last snap refresh is older than
+  `SNAP_REFRESH_MAX_AGE` days (new configuration key, default 14), or
+  refreshes of all snaps are on hold (`hold:` line of `snap refresh --time`).
+  A hold on some snaps only (`held` in `snap list`) is reported as INFO. The
+  precaution recalls that a hold may have been set on purpose.
+- New `SNAP-BRANCH` (WARNING): a snap follows a channel branch made for
+  another Ubuntu release, such as `latest/stable/ubuntu-25.10` on 26.04, and
+  no longer receives the updates made for this one. `snap list` shortens
+  branches (`latest/stable/…`), so the full channel is read from the local
+  snapd API (`snap debug api /v2/snaps`, installed snaps only, no root
+  needed). If that fails, shortened channels are reported as partial.
+- `SNAP-ERRORS`: when the failed operations name the Snap Store
+  (`api.snapcraft.io`) or a network failure, the consequence and actions say
+  that the store or the connection was probably unavailable, rather than a
+  problem on the computer. The logs of up to five failed operations are read
+  with `snap tasks` (local). Same ID, same severity.
+
+### Disk space
+- New `SYS-DISK-USAGE` (INFO), only when a filesystem is above `DISK_WARN`:
+  disabled snap revisions, `~/snap` of the audited user, reclaimable Docker
+  data, kernels other than the running one and the two newest (those apt keeps), the journal and
+  the apt cache are measured and listed largest first. A place that cannot be
+  read is reported as partial.
+- `SYS-DISK` then proposes, instead of its generic commands, those of each
+  measured place of at least 100 MiB, with the measured size: reading or
+  simulation first, then the command that frees the space. They appear in the
+  action plan. The generic commands are kept when `SYS-DISK-USAGE` is
+  silenced.
+
 ## 2.7.0
 
 The tool still only diagnoses, and never runs a fix. It now explains each

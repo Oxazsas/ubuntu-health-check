@@ -15,6 +15,46 @@ SNAP-ERRORS.warn.caution=Look at the date of each error in the evidence below: a
 SNAP-ERRORS.ev.1=snap changes (errors only)
 SNAP-ERRORS.ok.title=No failed snap operation in recent history
 SNAP-ERRORS.partial.1=snap operation history not readable
+SNAP-ERRORS.net.impact=The errors name the Snap Store or a network failure: most likely the store, or the connection of this computer to it, was unavailable when snap tried to update. The snaps stay on their current version until an update works, which usually happens on its own at the next attempt.
+SNAP-ERRORS.net.act.1=Lists the recent snap operations with their result and date, to see whether a later update worked. The ID is in the first column. Read-only.
+SNAP-ERRORS.net.act.2=Shows the steps of one operation, given its ID, and the network error it met. Read-only.
+SNAP-ERRORS.net.act.3=Once the connection works (a website opens normally), updates all snaps now instead of waiting for the next attempt. A snap that misbehaves after its update can be put back to its previous version with 'sudo snap revert' followed by its name.
+SNAP-ERRORS.net.caution=There is nothing to repair on this computer if the errors stopped once the network came back. If they continue while the network works, check for a proxy or a firewall that blocks api.snapcraft.io.
+SNAP-ERRORS.ev.2=Network errors found in the operations
+
+# ---- SNAP-REFRESH ----
+SNAP-REFRESH.held.title=Snap updates are on hold
+SNAP-REFRESH.held.impact=Snap normally updates its snaps on its own, several times a day. While updates are on hold, they keep their current version, without the fixes published since (security fixes included).
+SNAP-REFRESH.heldsome.title=Updates on hold for {n} snap(s)
+SNAP-REFRESH.heldsome.impact=The snaps listed below stay at their current version, without the fixes published since (security fixes included), until their hold is lifted. The other snaps are updated as usual.
+SNAP-REFRESH.held.act.1=Shows when snaps were last updated, when the next update is planned, and until when updates are on hold. Read-only.
+SNAP-REFRESH.held.act.2=Lifts the hold on all snaps: automatic updates start again. Can be undone with 'sudo snap refresh --hold'.
+SNAP-REFRESH.held.act.3=Lifts the hold on one snap, listed below. Can be undone with 'sudo snap refresh --hold' followed by its name.
+SNAP-REFRESH.held.caution=The hold may have been set on purpose: before a presentation, on a metered connection, or to keep a version that works. Lift it only if you know why it was set, or if that reason is gone.
+SNAP-REFRESH.ev.1=Hold on all snaps
+SNAP-REFRESH.ev.all=all snaps, until {until}
+SNAP-REFRESH.ev.2=Snaps held one by one
+SNAP-REFRESH.stale.title=Snaps not updated for {days} days
+SNAP-REFRESH.stale.impact=Snap normally updates its snaps on its own, several times a day. The last update was on {date}: the snaps miss the fixes published since then (security fixes included).
+SNAP-REFRESH.stale.act.1=Shows when snaps were last updated and when the next update is planned. Read-only.
+SNAP-REFRESH.stale.act.2=Lists the recent snap operations with their result, to find an update that failed. Read-only.
+SNAP-REFRESH.stale.act.3=Updates all snaps now. A snap that misbehaves after its update can be put back to its previous version with 'sudo snap revert' followed by its name.
+SNAP-REFRESH.stale.caution=A computer that stays switched off or offline for a long time does not update its snaps: in that case, the first update after it comes back is normal and nothing else is needed.
+SNAP-REFRESH.ev.3=snap refresh --time
+SNAP-REFRESH.ok.title=Snaps updated {days} day(s) ago
+SNAP-REFRESH.partial.1=snap update schedule not readable (snap refresh --time failed)
+SNAP-REFRESH.partial.2=date of the last snap update unknown
+
+# ---- SNAP-BRANCH ----
+SNAP-BRANCH.warn.title={n} snap(s) follow a branch made for another Ubuntu release (this one is {version})
+SNAP-BRANCH.warn.impact=Some snaps follow a channel made for one Ubuntu release (its name ends with ubuntu- and the release number). These ones follow the branch of a release other than {version}, usually the release before an upgrade: they no longer receive the updates made for this one.
+SNAP-BRANCH.warn.act.1=Shows the channels this snap is published in, and the one it follows. Read-only (it asks the Snap Store).
+SNAP-BRANCH.warn.act.2=Moves the snap to the main channel of its track (the target is listed below for each snap): snap then installs the version published for everyone. Can be undone: 'sudo snap revert' followed by its name goes back to the previous version, and the same command with the old channel shown below follows it again.
+SNAP-BRANCH.warn.caution=If the first command shows a branch for this release (ubuntu- followed by your release number), you can follow it instead, by putting its full name after --channel=. Handle one snap at a time.
+SNAP-BRANCH.ev.1=Snaps, channel followed, proposed channel
+SNAP-BRANCH.ok.title=No snap follows a branch of another Ubuntu release than {version}
+SNAP-BRANCH.partial.1=snap channel branches not checked (Ubuntu version number unknown)
+SNAP-BRANCH.partial.2=some snap channels are shortened by snap list and could not be read in full
 
 # ---- SNAP-DUPLICATE ----
 SNAP-DUPLICATE.conflict.title=Software installed both as a snap and as a deb package
