@@ -1,0 +1,92 @@
+# Messages of lib/checks/75-virt.sh. Format and rules: see common.lang.
+# Names of VMs, snapshots, networks, pools and image files may be masked
+# (--sanitize): never put one in a title, a consequence or a command; they
+# belong in the evidence only. Commands use placeholders (<vm>, <pool>...).
+
+section.75-virt=Virtual machines (libvirt)
+
+# ---- VIRT-ABSENT ----
+VIRT-ABSENT.info.title=libvirt not installed (no virtual machines managed by virsh)
+VIRT-ABSENT.info.impact=Nothing to check in this section.
+
+# ---- VIRT-ACCESS ----
+VIRT-ACCESS.partial.1=libvirt is installed but virsh is not (package libvirt-clients): virtual machines not checked
+VIRT-ACCESS.partial.2=cannot query libvirt (qemu:///system): daemon stopped, or no permission; run with sudo
+
+# ---- VIRT-SESSION ----
+VIRT-SESSION.partial.1=virtual machines of your own session ({n} definition(s) in ~/.config/libvirt/qemu) not queried: their daemon is not running, and querying them would start it. Only their names are listed
+VIRT-SESSION.partial.2=cannot query the virtual machines of your own session (qemu:///session)
+
+# ---- VIRT-VMS ----
+VIRT-VMS.info.title={n} virtual machine(s) (VM): {running} running, {autostart} started at boot, {mem} of memory for those switched on
+VIRT-VMS.info.impact=A virtual machine (VM) is a complete computer simulated by this one, with its own system. A VM that stays switched on holds its memory and uses energy all the time, and one marked as started at boot (autostart) starts again with the computer. The system inside a VM is not covered by this audit: to audit it, run this tool inside the VM. The list below gives each VM with its state, start at boot, memory, processors (vCPU) and disks, then the libvirt networks and storage pools.
+VIRT-VMS.info.act.1=Lists every VM with its state. Read-only. For the VMs of your own session (lines starting with [session]), replace system with session in the commands of this section.
+VIRT-VMS.info.act.2=Shows the details of one VM: state, memory, processors, start at boot (replace <vm> with its name in the list). Read-only.
+VIRT-VMS.info.act.3=For each VM, check that you still need it, and whether it must really stay on or start at boot. A VM you no longer use can be shut down from its own system, or from virt-manager.
+VIRT-VMS.info.act.4=Only for a VM that does not need to start with the computer: it will no longer start at boot (it stays as it is now). Can be undone with the same command without --disable.
+VIRT-VMS.info.caution=Shut a VM down from inside its own system, or with 'virsh shutdown', never with 'virsh destroy', which cuts it off like a power failure and can corrupt its files.
+VIRT-VMS.ev.1=Virtual machines (scope, name, state, start at boot, persistent, memory, vCPU; then disks and networks)
+VIRT-VMS.ev.2=libvirt networks (scope, name, active, start at boot, bridge, mode, address)
+VIRT-VMS.ev.3=Storage pools (scope, name, type, state, start at boot, folder)
+VIRT-VMS.ev.not_queried=(definition found, state not queried)
+VIRT-VMS.ev.network_disk=network disk
+VIRT-VMS.ev.size=(size {cap}, allocated {alloc})
+VIRT-VMS.ok.title=No virtual machine defined in libvirt
+
+# ---- VIRT-DISK-MISSING ----
+VIRT-DISK-MISSING.warn.title={n} disk(s) of virtual machines point to a file that no longer exists
+VIRT-DISK-MISSING.warn.impact=The VMs listed below use a disk image or an installation disc (ISO) whose file was deleted or moved. A VM that is switched off will refuse to start. A VM that is running still holds the deleted file open: its data is lost for good as soon as it stops, unless you save it first.
+VIRT-DISK-MISSING.warn.act.1=Lists the disks of one VM with their files (replace <vm> with its name in the list). Read-only.
+VIRT-DISK-MISSING.warn.act.2=Saves the description of the VM into the file vm-backup.xml in the current folder, so that it can be defined again later ('virsh define vm-backup.xml'). Changes nothing in libvirt.
+VIRT-DISK-MISSING.warn.act.3=If the file was moved, or for an installation disc you no longer need: opens the description of the VM in a text editor, where you can change the path of the disk or remove the disc. Takes effect at the next start of the VM. Can be undone by editing again.
+VIRT-DISK-MISSING.warn.act.4=Only for a VM you no longer want: removes its definition from libvirt. Its other disk files are kept. Cannot be undone, except with the saved description (step 2).
+VIRT-DISK-MISSING.warn.caution=For a running VM whose disk file was deleted, do not shut it down: first copy the data you need from inside the VM (to another disk or over the network). Before removing a definition, check the file is not simply on a disk that is not mounted.
+VIRT-DISK-MISSING.ev.1=Disks not found (scope, VM, device, target, file)
+VIRT-DISK-MISSING.ok.title=Every disk file of the virtual machines exists
+VIRT-DISK-MISSING.partial.1={n} disk(s) of virtual machines not checked (folder not readable, or storage volume not resolved; run with sudo)
+
+# ---- VIRT-CONSOLE ----
+VIRT-CONSOLE.warn.title={n} graphical console(s) of virtual machines reachable from the network
+VIRT-CONSOLE.warn.impact=The screen of these VMs (VNC or SPICE console) listens on an address other machines can reach, not only on this computer. Whoever reaches it sees the screen of the VM and can type on its keyboard, as if sitting in front of it. This audit cannot tell whether a password protects it (reading it would mean reading secrets), and these consoles are usually not encrypted.
+VIRT-CONSOLE.warn.act.1=Shows the address of the console of a running VM. Read-only.
+VIRT-CONSOLE.warn.act.2=Opens the description of the VM in a text editor: in the <graphics> line, set listen='127.0.0.1' (and address='127.0.0.1' on the <listen> line) so that the console is reachable from this computer only. Takes effect after the VM is fully shut down and started again. Can be undone by editing again.
+VIRT-CONSOLE.warn.act.3=To use the console from another computer once it listens on 127.0.0.1 only, go through SSH: run this on the other computer (5900 is the first VNC port; take the one shown by the first command), then connect your viewer to 127.0.0.1:5900. virt-manager can also connect over SSH by itself.
+VIRT-CONSOLE.warn.caution=If you use this console from another computer, set up the SSH access before changing the address, or you lose it. If you accept the risk, add VIRT-CONSOLE to IGNORE_CHECKS in uhc.conf.
+VIRT-CONSOLE.ev.1=Consoles reachable from the network (scope, VM, type, listening address, VM state)
+VIRT-CONSOLE.ok.title=The graphical consoles of the virtual machines are reachable from this computer only
+
+# ---- VIRT-SNAPSHOTS ----
+VIRT-SNAPSHOTS.info.title={n} snapshot(s) on {vms} virtual machine(s), oldest from {oldest}
+VIRT-SNAPSHOTS.info.impact=A snapshot is a restore point of a VM: you can return to the state it had at that moment. As long as it is kept, the image keeps everything that has changed since then, and grows with it. A snapshot taken while the VM was running (state running) also holds a copy of its memory. An old snapshot is rarely of any use. The list gives, for each VM, the number of snapshots, the oldest and the newest.
+VIRT-SNAPSHOTS.info.act.1=Shows the snapshots of a VM as a tree (each one depends on its parent). Read-only.
+VIRT-SNAPSHOTS.info.act.2=Shows the details of one snapshot: state, whether it is stored inside the image (internal) or in separate files (external), its parent. Read-only.
+VIRT-SNAPSHOTS.info.act.3=Only for a snapshot you no longer need: deletes that restore point. The current state of the VM does not change. Cannot be undone.
+VIRT-SNAPSHOTS.info.caution=A deleted snapshot can no longer be restored. The image file does not always shrink at once: the space freed inside it is reused first. Delete snapshots with virsh or virt-manager, never by deleting files by hand.
+VIRT-SNAPSHOTS.ev.1=Snapshots (scope, VM, then name, date, state of the VM when taken)
+VIRT-SNAPSHOTS.ev.vm={n} snapshot(s), oldest {oldest}, newest {newest}
+VIRT-SNAPSHOTS.ev.memory=(memory included, up to {mem})
+
+# ---- VIRT-IMAGE-ORPHAN ----
+VIRT-IMAGE-ORPHAN.info.title={n} disk image(s) that no virtual machine uses directly ({size} allocated)
+VIRT-IMAGE-ORPHAN.info.impact=These files of libvirt storage pools look like disk images (by their extension: qcow2, img, raw, iso...), but no VM uses them as a disk, an installation disc, or as the base image of a disk (as far as libvirt shows it). They may be leftovers of a deleted VM, a downloaded installation disc, or a base image kept on purpose. They take the space shown.
+VIRT-IMAGE-ORPHAN.info.act.1=Lists the files of one storage pool with their size (replace <pool> with its name in the list). Read-only.
+VIRT-IMAGE-ORPHAN.info.act.2=Shows what an image contains: format, size, and the image it is based on, if any. -U reads it even if a running VM uses it. Read-only.
+VIRT-IMAGE-ORPHAN.info.act.3=Only for an image you are sure you no longer need: deletes the file. Cannot be undone.
+VIRT-IMAGE-ORPHAN.info.caution=Before deleting an image, check that it is not the base of another image (second command, run on the images that remain), and that no other tool uses it: GNOME Boxes, a VM of another account, or a VM whose definition you removed but want to restore. Keep a copy if in doubt.
+VIRT-IMAGE-ORPHAN.ev.1=Images not attached directly (scope and pool, file, size)
+VIRT-IMAGE-ORPHAN.partial.1={n} inactive storage pool(s): their files are not listed
+
+# ---- VIRT-GROUP ----
+VIRT-GROUP.info.title=Members of the 'libvirt' group: {members}
+VIRT-GROUP.info.impact=Being in the libvirt group amounts to being root (the administrator) without typing a password: any program running under these accounts can create a VM that reads or changes any disk of the computer, and so take it over.
+VIRT-GROUP.info.act.1=Shows the members of the libvirt group. Read-only.
+VIRT-GROUP.info.act.2=On a personal computer where you are the only user and where you manage VMs, this is the usual setting (Ubuntu adds the account that installs libvirt). Where code you do not fully trust runs under these accounts (scripts, AI agents, project dependencies), consider removing them from the group.
+VIRT-GROUP.info.act.3=Removes an account from the libvirt group. Takes effect at its next login. Can be undone with 'sudo usermod -aG libvirt <user>'.
+VIRT-GROUP.info.caution=An account removed from the group must use sudo, or type the administrator password in virt-manager, to manage the VMs of the system.
+
+# ---- VIRT-LXD-GROUP ----
+VIRT-LXD-GROUP.info.title=LXD is installed and the 'lxd' group has members: {members}
+VIRT-LXD-GROUP.info.impact=LXD runs containers and virtual machines. Being in the lxd group amounts to being root (the administrator) without typing a password: a member can start a container that sees the whole disk of the computer.
+VIRT-LXD-GROUP.info.act.1=Shows the members of the lxd group. Read-only.
+VIRT-LXD-GROUP.info.act.2=If you do not use LXD from this account: removes the account from the lxd group. Takes effect at its next login. Can be undone with 'sudo usermod -aG lxd <user>'.
+VIRT-LXD-GROUP.info.caution=An account removed from the group can no longer manage LXD containers without sudo.

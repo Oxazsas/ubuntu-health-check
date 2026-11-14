@@ -34,6 +34,15 @@ SVC-PERSISTENCE-VENDOR.info.title={n} correspondance(s) dans des fichiers intact
 SVC-PERSISTENCE-VENDOR.info.impact=Ces fichiers correspondent à un motif, mais ils sont identiques octet pour octet à ce que leur paquet a installé (vérifié dans la base des paquets) : ils sont donc aussi fiables que le paquet lui-même. La tâche quotidienne de Google Chrome, par exemple, décode la clé de son dépôt avec base64. Si un tel fichier est modifié par la suite, il est signalé par un avertissement.
 SVC-PERSISTENCE-VENDOR.ev.1=Fichiers de paquets
 
+# ---- SVC-PERSISTENCE-VENDOR-COPY ----
+SVC-PERSISTENCE-VENDOR-COPY.info.title={n} correspondance(s) dans des copies locales de services de paquets qui lancent les mêmes commandes que le paquet
+SVC-PERSISTENCE-VENDOR-COPY.info.impact=Ces fichiers de service de /etc/systemd/system correspondent à un motif, mais chacun est la copie d'un service fourni par un paquet installé (le fichier du paquet est lui-même intact), et les deux ne diffèrent que par leur ordre de démarrage et leur description (lignes After=, Before=, Description=, Documentation=). Les commandes, le compte qui les lance et leur environnement sont exactement ceux du paquet. Certains installateurs écrivent de telles copies, par exemple l'image de bureau d'Ubuntu pour cloud-init. Toute autre différence, une surcharge (drop-in) ou une modification du fichier du paquet ramène l'avertissement.
+SVC-PERSISTENCE-VENDOR-COPY.info.act.1=Affiche le service tel que systemd l'utilise, avec le chemin du fichier en vigueur et ses surcharges (remplacez <unit> par le nom affiché dans la liste, par exemple cloud-init-network.service). Lecture seule.
+SVC-PERSISTENCE-VENDOR-COPY.info.act.2=Affiche les lignes qui diffèrent entre le fichier du paquet et la copie locale : seuls l'ordre de démarrage (After=, Before=) et des commentaires doivent apparaître. Lecture seule.
+SVC-PERSISTENCE-VENDOR-COPY.info.caution=Ce contrôle dit seulement « mêmes commandes qu'un paquet installé » : un paquet malveillant, venu d'un dépôt tiers par exemple, le passerait aussi. Il ne dit pas qui a écrit la copie, ni si le service est activé.
+SVC-PERSISTENCE-VENDOR-COPY.ev.1=Copies locales de services de paquets
+SVC-PERSISTENCE-VENDOR-COPY.ev.line=(copie de {vendor}, paquet {pkg} ; ne diffère que par l'ordre de démarrage)
+
 # ---- SVC-PERSISTENCE-STALE-ALLOW ----
 SVC-PERSISTENCE-STALE-ALLOW.info.title=Entrées de JOBS_ALLOW qui ne correspondent plus à aucune tâche : {fps}
 SVC-PERSISTENCE-STALE-ALLOW.info.impact=Les tâches autorisées par ces empreintes ont été supprimées ou modifiées. Une tâche modifiée réapparaît plus haut, avec sa nouvelle empreinte. Une empreinte oubliée autoriserait à nouveau exactement cette ligne si elle revenait.

@@ -95,7 +95,7 @@ use [Lynis](https://cisofy.com/lynis/) as well — the two are complementary.
 - Ubuntu 20.04 or newer (other Debian-based systems work partially).
 - Bash 4.4+ and standard tools present on any Ubuntu install.
 - Optional, used when present: `ubuntu-distro-info`, `pro`, `snap`, `ufw`,
-  `docker`, `mokutil`, `ss`, `ip`, `notify-send`. Missing tools are reported
+  `docker`, `virsh`, `mokutil`, `ss`, `ip`, `notify-send`. Missing tools are reported
   as _skipped_, never as errors.
 
 ## Installation
@@ -383,6 +383,7 @@ message.
 | `SVC-PERSISTENCE-ALLOWED`     | Matching jobs accepted by `JOBS_ALLOW` (always listed)                                      |
 | `SVC-PERSISTENCE-STALE-ALLOW` | `JOBS_ALLOW` fingerprints that no longer match any job                                      |
 | `SVC-PERSISTENCE-VENDOR`      | Matches in files shipped **unmodified** by an installed package                             |
+| `SVC-PERSISTENCE-VENDOR-COPY` | Matches in a local copy (`/etc/systemd/system`) of an unmodified packaged unit that differs only in start order (INFO) |
 | `SVC-PERSISTENCE-SCOPE`       | Skipped: other users' and root's crontabs need sudo                                         |
 | `SVC-AT-JOBS`                 | Pending `at` jobs (counted, not inspected)                                                  |
 | `SVC-SCHEDULED`               | Inventory of scheduled and startup jobs, with fingerprints (schedule and program name only) |
@@ -424,6 +425,19 @@ example Google Chrome's daily job, which installs its repository key with
 into `/opt/google`), the link must belong to a package and its target must be
 a packaged, unmodified file. Such a file is as trustworthy as its package; if
 it is modified or the link is redirected, it is flagged again.
+
+**Local copies of packaged units.** Some installers write a copy of a
+packaged service into `/etc/systemd/system` (Ubuntu's desktop image does so
+for `cloud-init-network.service`, whose `ExecStart` pipes a socket into `sh`).
+Such a match is reported as `SVC-PERSISTENCE-VENDOR-COPY` (INFO) only when all
+of these hold: the copy is a regular file owned by root and writable by root
+only, owned by no package; a unit of the same name in `/usr/lib/systemd/system`
+(or `/lib/systemd/system`) is an unmodified file of an installed package; no
+drop-in (`<name>.d/*.conf` or `service.d/*.conf` in `/etc`, `/run`,
+`/usr/local/lib`) changes it; and the two files differ only in the
+`After=`, `Before=`, `Description=` and `Documentation=` lines of `[Unit]`
+(comments ignored). Any other difference keeps the warning. This only proves
+"same commands as an installed package": a malicious package would pass too.
 
 ### Persistence detection: approach and limits
 
@@ -497,9 +511,9 @@ yourself is a red flag.**
 
 | ID                              | Check                                                                |
 | ------------------------------- | -------------------------------------------------------------------- |
-| `NET-LISTEN`                    | TCP services listening outside localhost (critical without firewall) |
+| `NET-LISTEN`                    | TCP services listening outside localhost (critical without firewall); INFO when they all listen on a VM bridge (`virbr*`), whose lines are marked in the evidence otherwise |
 | `NET-LISTEN-EXPECTED`           | Ports declared in `ALLOWED_PORTS`                                    |
-| `NET-UDP` / `NET-UDP-DISCOVERY` | UDP services; mDNS / DHCP / SSDP sockets                             |
+| `NET-UDP` / `NET-UDP-DISCOVERY` | UDP services (VM bridge sockets marked); mDNS / DHCP / SSDP sockets  |
 | `NET-FIREWALL`                  | Firewall active (ufw or firewalld)                                   |
 | `NET-FW-POLICY`                 | Default incoming policy (sudo)                                       |
 | `NET-FW-RULES` / `NET-FW-STALE` | Rules, and rules opening ports nothing listens on (sudo)             |
@@ -513,6 +527,30 @@ yourself is a red flag.**
 | `DKR-UPDATE`  | Docker update available                                             |
 | `DKR-GROUP`   | Members of the `docker` group (root-equivalent)                     |
 | `DKR-EXPOSED` | Containers publishing ports on all interfaces (Docker bypasses ufw) |
+
+### Virtualisation
+
+Virtual machines managed by libvirt (`virsh`, always `--readonly`, local
+URIs only). `qemu:///system` is always queried (systemd socket activation
+may start the system daemon, which changes nothing). The user's own
+`qemu:///session` is queried only when its daemon is already running, with
+`LIBVIRT_AUTOSTART=0`: connecting would otherwise start a session daemon.
+When it is not running, only the names of `~/.config/libvirt/qemu/*.xml` are
+listed. Domain XML is read without `--security-info` (no console passwords),
+and only a few attributes are extracted from it.
+
+| ID                  | Check                                                                    |
+| ------------------- | ------------------------------------------------------------------------ |
+| `VIRT-ABSENT`       | libvirt not installed (INFO, nothing else in the section)               |
+| `VIRT-ACCESS`       | Skipped: `virsh` missing, or `qemu:///system` cannot be queried          |
+| `VIRT-SESSION`      | Skipped: session VMs not queried (daemon not running), or query failed   |
+| `VIRT-VMS`          | Inventory: each VM with state, start at boot, persistence, memory, vCPU, disks (size from the pools) and networks; libvirt networks and storage pools (INFO; OK when no VM) |
+| `VIRT-DISK-MISSING` | A disk or ISO file of a VM no longer exists (WARNING); a path that cannot be tested is reported as skipped, never as missing |
+| `VIRT-CONSOLE`      | VNC / SPICE / RDP console listening on a non-local address (WARNING); local, socket, VM-bridge and NAT-network listens are not reported. Password protection cannot be checked |
+| `VIRT-SNAPSHOTS`    | Snapshots per VM: count, oldest and newest, state when taken (running = memory included) |
+| `VIRT-IMAGE-ORPHAN` | Pool volumes that look like disk images (extension `qcow2`, `img`, `raw`, `iso`, `vmdk`, `vdi`, `vhd(x)`, `qed` in folder pools; every volume of LVM/ZFS pools) used by no VM as disk, ISO, kernel/firmware or direct backing file; two pools on one folder are counted once (INFO) |
+| `VIRT-GROUP`        | Members of the `libvirt` group (root-equivalent)                         |
+| `VIRT-LXD-GROUP`    | Members of the `lxd` group, only when LXD is installed (root-equivalent) |
 
 ### Security posture
 
@@ -614,8 +652,11 @@ irreversible commands, back up data first).
 ```
 
 `--sanitize` masks the hostname, your user name, IPv4 and global IPv6
-addresses, MAC addresses, SSH key file names (`ssh-key-1`, ...) and container
-names (`container-1`, ...). Loopback (`127.0.0.1`, `[::1]`) and wildcard
+addresses, MAC addresses, SSH key file names (`ssh-key-1`, ...), container
+names (`container-1`, ...) and the names chosen for libvirt virtual machines,
+snapshots, networks, storage pools and image files (`vm-1`, `snapshot-1`,
+`network-1`, `pool-1`, `image-1.qcow2`; folders other than
+`/var/lib/libvirt/...` are shown as `…`). Loopback (`127.0.0.1`, `[::1]`) and wildcard
 (`0.0.0.0`) addresses are kept, because they tell whether a service is local
 or exposed.
 

@@ -26,6 +26,17 @@ NET-LISTEN.ok.title=No TCP service listening outside localhost
 NET-LISTEN.partial.1=listening ports not checked (ss not available)
 NET-LISTEN.partial.2=listening ports not checked (ss failed)
 NET-LISTEN-PROC.partial.1=process names of listening sockets need sudo
+# Sockets on a VM bridge (virbr0...): marker in the evidence, consequence
+# variants when some of the listed sockets are on one, and the INFO used when
+# all of them are.
+NET-LISTEN.vm_mark=VM bridge
+NET-LISTEN.crit.impact_bridge=The programs listed below wait for connections from other machines (a "listening port"), and no firewall filters them. Anyone on your local network can reach them, and so can the Internet over IPv6 if your router does not filter it. A flaw or a weak password in one of them is enough to get in. The lines marked [{vm_mark}] are an exception: they listen only on the internal network of the virtual machines (VMs) of this computer, which only those VMs can reach.
+NET-LISTEN.warn.impact_fw_bridge=The programs listed below wait for connections from other machines (a "listening port"). The firewall is on ({detail}), but it lets through whatever its rules allow: those ports are reachable from your network. The lines marked [{vm_mark}] are an exception: they listen only on the internal network of the virtual machines (VMs) of this computer, which only those VMs can reach.
+NET-LISTEN.warn.impact_nofw_bridge=The programs listed below wait for connections from other machines (a "listening port"). The audit could not tell whether a firewall filters them: assume they are reachable from your network. The lines marked [{vm_mark}] are an exception: they listen only on the internal network of the virtual machines (VMs) of this computer, which only those VMs can reach.
+NET-LISTEN.bridge.title=TCP services listening only on the internal network of the virtual machines
+NET-LISTEN.bridge.impact=The programs listed below wait for connections on the address of a virtual machine bridge (virbr0...), the private network that libvirt creates for its virtual machines (VMs). Other computers on your network cannot reach them: only the VMs of this computer can, and the computer itself. Typically this is the DNS and DHCP server that libvirt starts for its VMs, or a service you set up for them. A VM you do not trust can still reach these services.
+NET-LISTEN.bridge.act.1=Lists the listening TCP ports with the program behind each one. Read-only.
+NET-LISTEN.bridge.act.2=Shows the bridges of this computer and their addresses, so you can see which one carries the addresses listed below. Read-only.
 
 # ---- NET-LISTEN-EXPECTED ----
 NET-LISTEN-EXPECTED.ok.title=Listening ports declared as expected (ALLOWED_PORTS)
@@ -37,6 +48,9 @@ NET-UDP.info.impact=Some programs receive UDP traffic from other machines: DNS, 
 NET-UDP.info.act.1=Lists the open UDP ports with the program behind each one. Read-only.
 NET-UDP.info.act.2=Stop the programs you do not recognise or no longer use. For a port you expect (for example 51820/udp for a WireGuard VPN), add it to ALLOWED_PORTS in uhc.conf.
 NET-UDP.ev.1=UDP sockets
+NET-UDP.info.impact_bridge=Some programs receive UDP traffic from other machines: DNS, VPN, games, media servers... They are reachable from your network. This is fine if you use them. The lines marked [{vm_mark}] are reachable only from the virtual machines (VMs) of this computer: they are on the internal network that libvirt creates for them.
+NET-UDP.bridge.title=UDP ports open only on the internal network of the virtual machines
+NET-UDP.bridge.impact=These UDP ports are open on a virtual machine bridge (virbr0...), the private network that libvirt creates for its virtual machines (VMs): only the VMs of this computer can reach them, not the other computers of your network. Typically these are the DNS and DHCP servers that libvirt starts for its VMs.
 
 # ---- NET-UDP-DISCOVERY ----
 NET-UDP-DISCOVERY.info.title=Local discovery / DHCP sockets open (mDNS, DHCP, SSDP)

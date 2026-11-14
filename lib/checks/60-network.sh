@@ -32,6 +32,29 @@ if [[ "$fw_state" != active ]] && have firewall-cmd && [[ "$(run firewall-cmd --
     fw_state="active"; fw_detail="$(t NET-FIREWALL.detail.5)"
 fi
 
+# ---- addresses of virtual machine bridges ------------------------------------------
+# libvirt names the bridges of its virtual networks virbr0, virbr1...: an
+# address carried by one of them is reachable from the virtual machines of
+# this computer (and from the computer itself), not from the local network.
+# VM_BRIDGE_ADDRS (space-separated, without prefix length) is also read by
+# 75-virt.sh. Without ip, it stays empty and nothing is treated as a bridge.
+VM_BRIDGE_ADDRS=""
+if have ip; then
+    VM_BRIDGE_ADDRS="$(ip -o addr show 2>/dev/null \
+        | awk '$2 ~ /^virbr[0-9]+$/ && ($3 == "inet" || $3 == "inet6") {sub(/\/.*/, "", $4); print $4}' | paste -sd ' ')"
+fi
+# on_vm_bridge ADDR — true if the local address of a socket (as shown by ss,
+# port removed) is only on a VM bridge: one of its addresses, or any address
+# bound to a virbr device ("0.0.0.0%virbr0").
+on_vm_bridge() {
+    local a="$1" dev=""
+    [[ "$a" == *%* ]] && { dev="${a##*%}"; a="${a%\%*}"; }
+    [[ "$dev" =~ ^virbr[0-9]+$ ]] && return 0
+    [[ -n "$dev" ]] && return 1
+    a="${a#[}"; a="${a%]}"
+    [[ -n "$VM_BRIDGE_ADDRS" && " ${VM_BRIDGE_ADDRS} " == *" ${a} "* ]]
+}
+
 # ---- listening sockets ---------------------------------------------------------
 if ! have ss; then
     partial NET-LISTEN "$(t NET-LISTEN.partial.1)"
@@ -46,7 +69,9 @@ else
         ss_failed=0
     fi
 
-    exposed_tcp=""; udp_other=""; udp_known=""; expected=""; listen_ports=""
+    exposed_tcp=""; bridge_tcp=""; udp_other=""; udp_bridge=""; udp_known=""; expected=""; listen_ports=""
+    # Marker of the sockets found on a VM bridge, in the evidence.
+    vm_mark="$(t NET-LISTEN.vm_mark)"
     while read -r netid _ _ _ local _ proc; do
         [[ -z "$local" ]] && continue
         port="${local##*:}"
@@ -59,11 +84,17 @@ else
         if [[ " ${ALLOWED_PORTS} " == *" ${port}/${netid} "* ]]; then
             expected+="${entry}"$'\n'
         elif [[ "$netid" == tcp ]]; then
-            exposed_tcp+="${entry}"$'\n'
+            if on_vm_bridge "$addr"; then
+                bridge_tcp+="${entry}  [${vm_mark}]"$'\n'
+            else
+                exposed_tcp+="${entry}"$'\n'
+            fi
         elif [[ "$port" =~ ^(5353|68|546|1900)$ ]]; then
             udp_known+="${entry}"$'\n'           # mDNS, DHCP clients, SSDP
         elif (( port >= 32768 )); then
             :                                     # ephemeral client sockets (browsers: QUIC, WebRTC)
+        elif on_vm_bridge "$addr"; then
+            udp_bridge+="${entry}  [${vm_mark}]"$'\n'
         else
             udp_other+="${entry}"$'\n'
         fi
@@ -72,9 +103,14 @@ else
     if (( ss_failed == 1 )); then
         :
     elif [[ -n "$exposed_tcp" ]]; then
+        # Sockets on a VM bridge are listed too, marked, and the consequence
+        # says that those ones are reachable from the virtual machines only.
+        bridge_sfx=""
+        [[ -n "$bridge_tcp" ]] && bridge_sfx="_bridge"
+        # lang-keys: NET-LISTEN.crit.impact_bridge NET-LISTEN.warn.impact_fw_bridge NET-LISTEN.warn.impact_nofw_bridge
         if [[ "$fw_state" == inactive ]]; then
             finding CRITICAL NET-LISTEN "$(t NET-LISTEN.crit.title)"
-            impact NET-LISTEN.crit.impact
+            impact "NET-LISTEN.crit.impact${bridge_sfx}" vm_mark="$vm_mark"
             action "sudo ss -tulnp" NET-LISTEN.exposed.act.1
             action "sudo systemctl disable --now <service>" NET-LISTEN.exposed.act.2
             action "" NET-LISTEN.exposed.act.3
@@ -84,9 +120,9 @@ else
             finding WARNING NET-LISTEN "$(t NET-LISTEN.warn.title)"
             # fw_state is "active" or "unknown" here.
             if [[ "$fw_state" == active ]]; then
-                impact NET-LISTEN.warn.impact_fw detail="$fw_detail"
+                impact "NET-LISTEN.warn.impact_fw${bridge_sfx}" detail="$fw_detail" vm_mark="$vm_mark"
             else
-                impact NET-LISTEN.warn.impact_nofw
+                impact "NET-LISTEN.warn.impact_nofw${bridge_sfx}" vm_mark="$vm_mark"
             fi
             action "sudo ss -tulnp" NET-LISTEN.exposed.act.1
             action "sudo systemctl disable --now <service>" NET-LISTEN.exposed.act.2
@@ -94,7 +130,15 @@ else
             action "" NET-LISTEN.warn.act.4
             caution NET-LISTEN.exposed.caution
         fi
-        evidence "$(t NET-LISTEN.ev.1)" "${exposed_tcp%$'\n'}"
+        evidence "$(t NET-LISTEN.ev.1)" "${exposed_tcp}${bridge_tcp%$'\n'}"
+        [[ "$IS_ROOT" == 0 ]] && partial NET-LISTEN-PROC "$(t NET-LISTEN-PROC.partial.1)"
+    elif [[ -n "$bridge_tcp" ]]; then
+        # Every TCP socket outside localhost is on a VM bridge.
+        finding INFO NET-LISTEN "$(t NET-LISTEN.bridge.title)"
+        impact NET-LISTEN.bridge.impact
+        action "sudo ss -tlnp" NET-LISTEN.bridge.act.1
+        action "ip -br addr show type bridge" NET-LISTEN.bridge.act.2
+        evidence "$(t NET-LISTEN.ev.1)" "${bridge_tcp%$'\n'}"
         [[ "$IS_ROOT" == 0 ]] && partial NET-LISTEN-PROC "$(t NET-LISTEN-PROC.partial.1)"
     else
         finding OK NET-LISTEN "$(t NET-LISTEN.ok.title)"
@@ -105,10 +149,19 @@ else
     fi
     if [[ -n "$udp_other" ]]; then
         finding INFO NET-UDP "$(t NET-UDP.info.title)"
-        impact NET-UDP.info.impact
+        if [[ -n "$udp_bridge" ]]; then
+            impact NET-UDP.info.impact_bridge vm_mark="$vm_mark"
+        else
+            impact NET-UDP.info.impact
+        fi
         action "sudo ss -ulnp" NET-UDP.info.act.1
         action "" NET-UDP.info.act.2
-        evidence "$(t NET-UDP.ev.1)" "${udp_other%$'\n'}"
+        evidence "$(t NET-UDP.ev.1)" "${udp_other}${udp_bridge%$'\n'}"
+    elif [[ -n "$udp_bridge" ]]; then
+        finding INFO NET-UDP "$(t NET-UDP.bridge.title)"
+        impact NET-UDP.bridge.impact
+        action "sudo ss -ulnp" NET-UDP.info.act.1
+        evidence "$(t NET-UDP.ev.1)" "${udp_bridge%$'\n'}"
     fi
     if [[ -n "$udp_known" ]]; then
         finding INFO NET-UDP-DISCOVERY "$(t NET-UDP-DISCOVERY.info.title)"

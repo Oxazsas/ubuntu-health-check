@@ -1,5 +1,70 @@
 # Changelog
 
+## 2.10.0
+
+A new section for virtual machines managed by libvirt, and two false
+positives fixed. Every new command is read-only and answered locally: no new
+network access. `virsh` is always run with `--readonly`.
+
+### Virtual machines (libvirt)
+- New module `75-virt.sh`, IDs `VIRT-*`. `qemu:///system` is always
+  queried; connecting may start the system daemon through systemd socket
+  activation, which changes nothing. The user's own `qemu:///session` is
+  queried only when its daemon already runs and its socket exists, with
+  `LIBVIRT_AUTOSTART=0`: a connection otherwise starts a session daemon
+  (`libvirtd --timeout=120`), checked with strace. When it does not run,
+  only the names of `~/.config/libvirt/qemu/*.xml` are listed
+  (`VIRT-SESSION`, partial). Domain XML is read without `--security-info`
+  (refused anyway on a read-only connection), and only a few attributes are
+  extracted from it.
+- `VIRT-ABSENT` (INFO) when libvirt is not installed; `VIRT-ACCESS`
+  (partial) when `virsh` is missing or the daemon cannot be reached.
+- `VIRT-VMS` (INFO, OK when no VM): every VM with its state, start at boot,
+  persistence, memory, vCPU, disks (size and allocation from the storage
+  pools) and networks; the libvirt networks (bridge, mode, address) and
+  storage pools follow in the evidence.
+- `VIRT-DISK-MISSING` (WARNING): a disk or ISO file of a VM no longer
+  exists. A path that cannot be tested with the current privileges is
+  reported as partial, never as missing.
+- `VIRT-CONSOLE` (WARNING): a VNC, SPICE or RDP console listening on an
+  address other machines can reach. Loopback, sockets, the VM bridge and
+  NAT networks are not reported. Whether a password protects it is not
+  claimed either way.
+- `VIRT-SNAPSHOTS` (INFO): snapshots per VM, with oldest and newest dates
+  and the state when taken (running: memory included).
+- `VIRT-IMAGE-ORPHAN` (INFO): pool volumes that look like disk images
+  (by extension in folder pools, every volume of LVM/ZFS pools) that no VM
+  uses as a disk, an ISO, a kernel or firmware file, or a direct backing
+  file. Two pools on the same folder are counted once; inactive pools are
+  reported as partial.
+- `VIRT-GROUP` (INFO), like `DKR-GROUP`: members of the `libvirt` group.
+  `VIRT-LXD-GROUP` (INFO) for the `lxd` group, only when LXD is installed:
+  Ubuntu adds the first account to that group whether LXD is there or not.
+- With `--sanitize`, names of VMs, snapshots, networks, pools and image
+  files are replaced by aliases (`vm-1`, `image-1.qcow2`...), and they never
+  appear in a title, a consequence or a command.
+
+### Network
+- `NET-LISTEN`: sockets on the address of a VM bridge (`virbr*`, or bound
+  to such a device) are reachable only from the VMs of this computer. When
+  every TCP socket outside localhost is on one, the finding is INFO with its
+  own text; otherwise the severity is unchanged, those lines are marked
+  `[VM bridge]` in the evidence and the consequence says so. `NET-UDP` marks
+  them the same way and gets its own title when they are the only ones. The
+  bridge addresses are read with `ip` (`VM_BRIDGE_ADDRS`, also used by
+  `75-virt.sh`); without `ip`, nothing changes.
+
+### Persistence
+- New `SVC-PERSISTENCE-VENDOR-COPY` (INFO): a match in a copy of a packaged
+  service written into `/etc/systemd/system` (Ubuntu's desktop image does so
+  for `cloud-init-network.service`) no longer raises `SVC-PERSISTENCE` when
+  the copy runs exactly what the package runs: root-owned, writable by root
+  only, owned by no package; the unit of the same name in
+  `/usr/lib/systemd/system` is an unmodified packaged file; no drop-in in
+  `/etc`, `/run` or `/usr/local/lib`; and the two differ only in `After=`,
+  `Before=`, `Description=` and `Documentation=` lines. Anything else keeps
+  the warning. The precaution says that a malicious package would pass too.
+
 ## 2.9.0
 
 Five new checks: expired repository keys, third-party repositories left out

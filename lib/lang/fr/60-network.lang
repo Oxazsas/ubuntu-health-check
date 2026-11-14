@@ -26,6 +26,17 @@ NET-LISTEN.ok.title=Aucun service TCP n'écoute en dehors de localhost
 NET-LISTEN.partial.1=ports en écoute non vérifiés (ss indisponible)
 NET-LISTEN.partial.2=ports en écoute non vérifiés (échec de ss)
 NET-LISTEN-PROC.partial.1=les noms des processus en écoute demandent sudo
+# Sockets sur un pont de VM (virbr0...) : repère dans la preuve, variantes de
+# la conséquence quand une partie des sockets listés y sont, et INFO utilisé
+# quand ils y sont tous.
+NET-LISTEN.vm_mark=pont de VM
+NET-LISTEN.crit.impact_bridge=Les programmes listés ci-dessous attendent des connexions venant d'autres machines (un « port en écoute »), et aucun pare-feu ne les filtre. N'importe qui sur votre réseau local peut les joindre, et Internet aussi en IPv6 si votre box ne filtre pas. Une faille ou un mot de passe faible dans l'un d'eux suffit pour entrer. Exception : les lignes marquées [{vm_mark}] n'écoutent que sur le réseau interne des machines virtuelles (VM) de cet ordinateur, que seules ces VM peuvent joindre.
+NET-LISTEN.warn.impact_fw_bridge=Les programmes listés ci-dessous attendent des connexions venant d'autres machines (un « port en écoute »). Le pare-feu est actif ({detail}), mais il laisse passer ce que ses règles autorisent : ces ports sont joignables depuis votre réseau. Exception : les lignes marquées [{vm_mark}] n'écoutent que sur le réseau interne des machines virtuelles (VM) de cet ordinateur, que seules ces VM peuvent joindre.
+NET-LISTEN.warn.impact_nofw_bridge=Les programmes listés ci-dessous attendent des connexions venant d'autres machines (un « port en écoute »). L'audit n'a pas pu déterminer si un pare-feu les filtre : considérez qu'ils sont joignables depuis votre réseau. Exception : les lignes marquées [{vm_mark}] n'écoutent que sur le réseau interne des machines virtuelles (VM) de cet ordinateur, que seules ces VM peuvent joindre.
+NET-LISTEN.bridge.title=Des services TCP n'écoutent que sur le réseau interne des machines virtuelles
+NET-LISTEN.bridge.impact=Les programmes listés ci-dessous attendent des connexions sur l'adresse d'un pont de machines virtuelles (virbr0...), le réseau privé que libvirt crée pour ses machines virtuelles (VM). Les autres ordinateurs de votre réseau ne peuvent pas les joindre : seules les VM de cet ordinateur le peuvent, ainsi que l'ordinateur lui-même. En général, c'est le serveur DNS et DHCP que libvirt lance pour ses VM, ou un service que vous avez mis à leur disposition. Une VM à laquelle vous ne faites pas confiance peut tout de même joindre ces services.
+NET-LISTEN.bridge.act.1=Liste les ports TCP en écoute et le programme derrière chacun. Lecture seule.
+NET-LISTEN.bridge.act.2=Affiche les ponts de cet ordinateur et leurs adresses, pour voir lequel porte les adresses listées ci-dessous. Lecture seule.
 
 # ---- NET-LISTEN-EXPECTED ----
 NET-LISTEN-EXPECTED.ok.title=Ports en écoute déclarés comme attendus (ALLOWED_PORTS)
@@ -37,6 +48,9 @@ NET-UDP.info.impact=Certains programmes reçoivent du trafic UDP venant d'autres
 NET-UDP.info.act.1=Liste les ports UDP ouverts et le programme derrière chacun. Lecture seule.
 NET-UDP.info.act.2=Arrêtez les programmes que vous ne reconnaissez pas ou dont vous ne vous servez plus. Pour un port attendu (par exemple 51820/udp pour un VPN WireGuard), ajoutez-le à ALLOWED_PORTS dans uhc.conf.
 NET-UDP.ev.1=Sockets UDP
+NET-UDP.info.impact_bridge=Certains programmes reçoivent du trafic UDP venant d'autres machines : DNS, VPN, jeux, serveurs multimédias... Ils sont joignables depuis votre réseau. C'est normal si vous vous en servez. Les lignes marquées [{vm_mark}] ne sont joignables que par les machines virtuelles (VM) de cet ordinateur : elles sont sur le réseau interne que libvirt crée pour elles.
+NET-UDP.bridge.title=Des ports UDP ne sont ouverts que sur le réseau interne des machines virtuelles
+NET-UDP.bridge.impact=Ces ports UDP sont ouverts sur un pont de machines virtuelles (virbr0...), le réseau privé que libvirt crée pour ses machines virtuelles (VM) : seules les VM de cet ordinateur peuvent les joindre, pas les autres ordinateurs de votre réseau. En général, ce sont les serveurs DNS et DHCP que libvirt lance pour ses VM.
 
 # ---- NET-UDP-DISCOVERY ----
 NET-UDP-DISCOVERY.info.title=Sockets de découverte locale et DHCP ouverts (mDNS, DHCP, SSDP)

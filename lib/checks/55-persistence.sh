@@ -192,6 +192,65 @@ pkg_unmodified() {
     printf '%s' "$owner"
 }
 
+# unit_settings FILE — the settings of a systemd unit, one per line, as
+# "[Section]Key=value" (comments and empty lines dropped, continuation lines
+# joined, spaces around the key and the value trimmed), sorted.
+unit_settings() {
+    logical_lines <"$1" | awk -F'\t' '
+        { line = $2; sub(/^[[:space:]]+/, "", line); sub(/[[:space:]]+$/, "", line) }
+        line == "" || line ~ /^[#;]/ { next }
+        line ~ /^\[.*\]$/ { sec = line; next }
+        { eq = index(line, "="); if (eq == 0) { print sec line; next }
+          key = substr(line, 1, eq - 1); val = substr(line, eq + 1)
+          sub(/[[:space:]]+$/, "", key); sub(/^[[:space:]]+/, "", val)
+          print sec key "=" val }' | LC_ALL=C sort
+}
+
+# unit_vendor_copy PATH — for a service file in /etc/systemd/system that is a
+# local copy of a unit shipped by a package (some installers write such
+# copies, for example Ubuntu's desktop image for cloud-init), print
+# "<vendor file> <package>" when the copy runs exactly what the package runs:
+#   - the copy is a regular file owned by root, writable by root only, that
+#     no package owns;
+#   - a unit of the same name in /usr/lib/systemd/system or
+#     /lib/systemd/system is an unmodified file of an installed package;
+#   - no drop-in changes the unit (<name>.d/*.conf, service.d/*.conf or a
+#     dash-prefix folder such as foo-.service.d, in any systemd system
+#     folder);
+#   - the settings of the two files differ only in start order and
+#     description (After=, Before=, Description=, Documentation= of [Unit]),
+#     which change neither what runs, nor as whom, nor with which environment.
+# Anything else (another key, a drop-in, a modified vendor file) fails, and
+# the match stays a warning. Only called for the few pattern matches.
+unit_vendor_copy() {
+    local f="$1" name vendor="" d owner extra pfx
+    [[ "$f" =~ ^/etc/systemd/system/[^/]+\.service$ && -f "$f" && ! -L "$f" ]] || return 1
+    [[ "$(stat -c '%u %A' -- "$f" 2>/dev/null)" =~ ^0\ -rw.[r-]-.[r-]-.$ ]] || return 1
+    [[ -z "$(pkg_owner "$f")" ]] || return 1
+    name="${f##*/}"
+    for d in /usr/lib/systemd/system /lib/systemd/system; do
+        [[ -f "$d/$name" ]] && { vendor="$d/$name"; break; }
+    done
+    [[ -n "$vendor" ]] || return 1
+    owner="$(pkg_unmodified "$vendor")" || return 1
+    for d in /etc/systemd/system /run/systemd/system /usr/local/lib/systemd/system \
+             /usr/lib/systemd/system /lib/systemd/system; do
+        compgen -G "$d/${name}.d/*.conf" >/dev/null && return 1
+        compgen -G "$d/service.d/*.conf" >/dev/null && return 1
+        # systemd also applies the drop-ins of each dash prefix of the name
+        # (foo-bar.service: foo-.service.d).
+        pfx="${name%.service}"
+        while [[ "$pfx" == *-* ]]; do
+            pfx="${pfx%-*}"
+            compgen -G "$d/${pfx}-.service.d/*.conf" >/dev/null && return 1
+        done
+    done
+    extra="$(LC_ALL=C comm -3 <(unit_settings "$f") <(unit_settings "$vendor") \
+             | sed 's/^\t//' | grep -vE '^\[Unit\](After|Before|Description|Documentation)=')"
+    [[ -z "$extra" ]] || return 1
+    printf '%s %s' "$vendor" "$owner"
+}
+
 # ---- collect records ---------------------------------------------------------------
 job_records=""
 add() { [[ -n "$1" ]] && job_records+="$1"$'\n'; }
@@ -255,7 +314,7 @@ for f in /etc/profile /etc/bash.bashrc /etc/profile.d/*.sh; do
 done
 
 # ---- classify ------------------------------------------------------------------------
-suspects=""; allowed=""; vendor=""; all_jobs=""; seen_fp=" "; n_records=0; base_lines=""
+suspects=""; allowed=""; vendor=""; vendor_copy=""; all_jobs=""; seen_fp=" "; n_records=0; base_lines=""
 while IFS=$'\t' read -r trig label display path cmd raw; do
     [[ -z "$label" ]] && continue
     n_records=$((n_records + 1))
@@ -274,6 +333,8 @@ while IFS=$'\t' read -r trig label display path cmd raw; do
         allowed+="${line}"$'\n'
     elif [[ "$path" != - ]] && owner="$(pkg_unmodified "$path")"; then
         vendor+="${line}  (unmodified file of package ${owner})"$'\n'
+    elif [[ "$path" != - ]] && copy_of="$(unit_vendor_copy "$path")"; then
+        vendor_copy+="${line}  $(t SVC-PERSISTENCE-VENDOR-COPY.ev.line vendor="${copy_of% *}" pkg="${copy_of##* }")"$'\n'
     else
         suspects+="${line}"$'\n'
     fi
@@ -324,6 +385,14 @@ if [[ -n "$vendor" ]]; then
     finding INFO SVC-PERSISTENCE-VENDOR "$(t SVC-PERSISTENCE-VENDOR.info.title n="$(grep -c . <<<"$vendor")")"
     impact SVC-PERSISTENCE-VENDOR.info.impact
     evidence "$(t SVC-PERSISTENCE-VENDOR.ev.1)" "${vendor%$'\n'}"
+fi
+if [[ -n "$vendor_copy" ]]; then
+    finding INFO SVC-PERSISTENCE-VENDOR-COPY "$(t SVC-PERSISTENCE-VENDOR-COPY.info.title n="$(grep -c . <<<"$vendor_copy")")"
+    impact SVC-PERSISTENCE-VENDOR-COPY.info.impact
+    action "systemctl cat <unit>" SVC-PERSISTENCE-VENDOR-COPY.info.act.1
+    action "diff /usr/lib/systemd/system/<unit> /etc/systemd/system/<unit>" SVC-PERSISTENCE-VENDOR-COPY.info.act.2
+    caution SVC-PERSISTENCE-VENDOR-COPY.info.caution
+    evidence "$(t SVC-PERSISTENCE-VENDOR-COPY.ev.1)" "${vendor_copy%$'\n'}"
 fi
 stale_allow=""
 for fp in ${JOBS_ALLOW:-}; do

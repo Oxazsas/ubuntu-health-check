@@ -1,0 +1,93 @@
+# Messages de lib/checks/75-virt.sh. Format et règles : voir lib/lang/en/common.lang.
+# Les noms de VM, d'instantanés, de réseaux, de pools et de fichiers d'image
+# peuvent être masqués (--sanitize) : jamais dans un titre, une conséquence ou
+# une commande ; ils restent dans la preuve. Les commandes utilisent des
+# repères (<vm>, <pool>...).
+
+section.75-virt=Machines virtuelles (libvirt)
+
+# ---- VIRT-ABSENT ----
+VIRT-ABSENT.info.title=libvirt n'est pas installé (aucune machine virtuelle gérée par virsh)
+VIRT-ABSENT.info.impact=Rien à vérifier dans cette section.
+
+# ---- VIRT-ACCESS ----
+VIRT-ACCESS.partial.1=libvirt est installé mais pas virsh (paquet libvirt-clients) : machines virtuelles non vérifiées
+VIRT-ACCESS.partial.2=impossible d'interroger libvirt (qemu:///system) : démon arrêté, ou permission refusée ; lancez avec sudo
+
+# ---- VIRT-SESSION ----
+VIRT-SESSION.partial.1=machines virtuelles de votre propre session ({n} définition(s) dans ~/.config/libvirt/qemu) non interrogées : leur démon n'est pas lancé, et les interroger le lancerait. Seuls leurs noms sont listés
+VIRT-SESSION.partial.2=impossible d'interroger les machines virtuelles de votre propre session (qemu:///session)
+
+# ---- VIRT-VMS ----
+VIRT-VMS.info.title={n} machine(s) virtuelle(s) (VM) : {running} en marche, {autostart} lancée(s) au démarrage, {mem} de mémoire pour celles allumées
+VIRT-VMS.info.impact=Une machine virtuelle (VM) est un ordinateur complet simulé par celui-ci, avec son propre système. Une VM qui reste allumée garde sa mémoire et consomme de l'énergie en permanence, et une VM lancée au démarrage (autostart) redémarre avec l'ordinateur. Le système d'une VM n'est pas couvert par cet audit : pour l'auditer, lancez cet outil à l'intérieur de la VM. La liste ci-dessous donne chaque VM avec son état, son lancement au démarrage, sa mémoire, ses processeurs (vCPU) et ses disques, puis les réseaux et les pools de stockage de libvirt.
+VIRT-VMS.info.act.1=Liste toutes les VM avec leur état. Lecture seule. Pour les VM de votre propre session (lignes commençant par [session]), remplacez system par session dans les commandes de cette section.
+VIRT-VMS.info.act.2=Affiche le détail d'une VM : état, mémoire, processeurs, lancement au démarrage (remplacez <vm> par son nom dans la liste). Lecture seule.
+VIRT-VMS.info.act.3=Pour chaque VM, vérifiez que vous en avez encore besoin, et si elle doit vraiment rester allumée ou se lancer au démarrage. Une VM dont vous ne vous servez plus peut être éteinte depuis son propre système, ou depuis virt-manager.
+VIRT-VMS.info.act.4=Seulement pour une VM qui n'a pas besoin de démarrer avec l'ordinateur : elle ne se lancera plus au démarrage (elle reste dans son état actuel). Réversible : la même commande sans --disable.
+VIRT-VMS.info.caution=Éteignez une VM depuis son propre système, ou avec 'virsh shutdown', jamais avec 'virsh destroy', qui la coupe comme une panne de courant et peut abîmer ses fichiers.
+VIRT-VMS.ev.1=Machines virtuelles (portée, nom, état, lancement au démarrage, persistante, mémoire, vCPU ; puis disques et réseaux)
+VIRT-VMS.ev.2=Réseaux libvirt (portée, nom, actif, lancement au démarrage, pont, mode, adresse)
+VIRT-VMS.ev.3=Pools de stockage (portée, nom, type, état, lancement au démarrage, dossier)
+VIRT-VMS.ev.not_queried=(définition trouvée, état non interrogé)
+VIRT-VMS.ev.network_disk=disque réseau
+VIRT-VMS.ev.size=(taille {cap}, occupé {alloc})
+VIRT-VMS.ok.title=Aucune machine virtuelle définie dans libvirt
+
+# ---- VIRT-DISK-MISSING ----
+VIRT-DISK-MISSING.warn.title={n} disque(s) de machines virtuelles pointent vers un fichier qui n'existe plus
+VIRT-DISK-MISSING.warn.impact=Les VM listées ci-dessous utilisent une image disque ou un disque d'installation (ISO) dont le fichier a été supprimé ou déplacé. Une VM éteinte refusera de démarrer. Une VM en marche garde le fichier supprimé ouvert : ses données sont perdues pour de bon dès qu'elle s'arrête, sauf si vous les sauvegardez avant.
+VIRT-DISK-MISSING.warn.act.1=Liste les disques d'une VM avec leurs fichiers (remplacez <vm> par son nom dans la liste). Lecture seule.
+VIRT-DISK-MISSING.warn.act.2=Enregistre la description de la VM dans le fichier vm-backup.xml du dossier courant, pour pouvoir la redéfinir plus tard ('virsh define vm-backup.xml'). Ne change rien dans libvirt.
+VIRT-DISK-MISSING.warn.act.3=Si le fichier a été déplacé, ou pour un disque d'installation dont vous n'avez plus besoin : ouvre la description de la VM dans un éditeur de texte, où vous pouvez corriger le chemin du disque ou retirer le disque. Prend effet au prochain démarrage de la VM. Réversible en la modifiant à nouveau.
+VIRT-DISK-MISSING.warn.act.4=Seulement pour une VM dont vous ne voulez plus : retire sa définition de libvirt. Ses autres fichiers de disque sont conservés. Irréversible, sauf avec la description sauvegardée (étape 2).
+VIRT-DISK-MISSING.warn.caution=Pour une VM en marche dont le fichier de disque a été supprimé, ne l'éteignez pas : copiez d'abord les données utiles depuis l'intérieur de la VM (vers un autre disque ou par le réseau). Avant de retirer une définition, vérifiez que le fichier n'est pas simplement sur un disque non monté.
+VIRT-DISK-MISSING.ev.1=Disques introuvables (portée, VM, périphérique, cible, fichier)
+VIRT-DISK-MISSING.ok.title=Tous les fichiers de disque des machines virtuelles existent
+VIRT-DISK-MISSING.partial.1={n} disque(s) de machines virtuelles non vérifiés (dossier illisible, ou volume de stockage non résolu ; lancez avec sudo)
+
+# ---- VIRT-CONSOLE ----
+VIRT-CONSOLE.warn.title={n} console(s) graphique(s) de machines virtuelles joignable(s) depuis le réseau
+VIRT-CONSOLE.warn.impact=L'écran de ces VM (console VNC ou SPICE) écoute sur une adresse que d'autres machines peuvent joindre, pas seulement sur cet ordinateur. Qui l'atteint voit l'écran de la VM et peut taper sur son clavier, comme s'il était assis devant. Cet audit ne peut pas savoir si un mot de passe la protège (il faudrait lire des secrets), et ces consoles ne sont en général pas chiffrées.
+VIRT-CONSOLE.warn.act.1=Affiche l'adresse de la console d'une VM en marche. Lecture seule.
+VIRT-CONSOLE.warn.act.2=Ouvre la description de la VM dans un éditeur de texte : dans la ligne <graphics>, mettez listen='127.0.0.1' (et address='127.0.0.1' sur la ligne <listen>) pour que la console ne soit joignable que depuis cet ordinateur. Prend effet après un arrêt complet puis un nouveau démarrage de la VM. Réversible en la modifiant à nouveau.
+VIRT-CONSOLE.warn.act.3=Pour utiliser la console depuis un autre ordinateur une fois qu'elle n'écoute plus que sur 127.0.0.1, passez par SSH : lancez ceci sur l'autre ordinateur (5900 est le premier port VNC ; prenez celui qu'affiche la première commande), puis connectez votre visionneuse à 127.0.0.1:5900. virt-manager sait aussi se connecter par SSH tout seul.
+VIRT-CONSOLE.warn.caution=Si vous utilisez cette console depuis un autre ordinateur, mettez en place l'accès par SSH avant de changer l'adresse, sinon vous le perdez. Si vous acceptez le risque, ajoutez VIRT-CONSOLE à IGNORE_CHECKS dans uhc.conf.
+VIRT-CONSOLE.ev.1=Consoles joignables depuis le réseau (portée, VM, type, adresse d'écoute, état de la VM)
+VIRT-CONSOLE.ok.title=Les consoles graphiques des machines virtuelles ne sont joignables que depuis cet ordinateur
+
+# ---- VIRT-SNAPSHOTS ----
+VIRT-SNAPSHOTS.info.title={n} instantané(s) sur {vms} machine(s) virtuelle(s), le plus ancien du {oldest}
+VIRT-SNAPSHOTS.info.impact=Un instantané (snapshot) est un point de restauration d'une VM : il permet de revenir à l'état qu'elle avait à ce moment-là. Tant qu'il est conservé, l'image garde tout ce qui a changé depuis, et grossit d'autant. Un instantané pris VM allumée (état running) contient en plus une copie de sa mémoire. Un instantané ancien a peu de chances de servir. La liste donne, pour chaque VM, le nombre d'instantanés, le plus ancien et le plus récent.
+VIRT-SNAPSHOTS.info.act.1=Affiche les instantanés d'une VM sous forme d'arbre (chacun dépend de son parent). Lecture seule.
+VIRT-SNAPSHOTS.info.act.2=Affiche le détail d'un instantané : état, rangement dans l'image (internal) ou dans des fichiers à part (external), parent. Lecture seule.
+VIRT-SNAPSHOTS.info.act.3=Seulement pour un instantané dont vous n'avez plus besoin : supprime ce point de restauration. L'état actuel de la VM ne change pas. Irréversible.
+VIRT-SNAPSHOTS.info.caution=Un instantané supprimé ne peut plus être restauré. Le fichier de l'image ne rétrécit pas toujours tout de suite : la place libérée à l'intérieur est d'abord réutilisée. Supprimez les instantanés avec virsh ou virt-manager, jamais en effaçant des fichiers à la main.
+VIRT-SNAPSHOTS.ev.1=Instantanés (portée, VM, puis nom, date, état de la VM au moment de la prise)
+VIRT-SNAPSHOTS.ev.vm={n} instantané(s), plus ancien {oldest}, plus récent {newest}
+VIRT-SNAPSHOTS.ev.memory=(mémoire incluse, jusqu'à {mem})
+
+# ---- VIRT-IMAGE-ORPHAN ----
+VIRT-IMAGE-ORPHAN.info.title={n} image(s) disque qu'aucune machine virtuelle n'utilise directement ({size} occupés)
+VIRT-IMAGE-ORPHAN.info.impact=Ces fichiers des pools de stockage de libvirt ont l'air d'images disque (d'après leur extension : qcow2, img, raw, iso...), mais aucune VM ne les utilise comme disque, comme disque d'installation, ni comme image de base d'un disque (pour autant que libvirt le montre). Ce sont peut-être des restes d'une VM supprimée, un disque d'installation téléchargé, ou une image de base gardée exprès. Ils occupent la place indiquée.
+VIRT-IMAGE-ORPHAN.info.act.1=Liste les fichiers d'un pool de stockage avec leur taille (remplacez <pool> par son nom dans la liste). Lecture seule.
+VIRT-IMAGE-ORPHAN.info.act.2=Affiche ce que contient une image : format, taille, et l'image sur laquelle elle s'appuie s'il y en a une. -U la lit même si une VM en marche l'utilise. Lecture seule.
+VIRT-IMAGE-ORPHAN.info.act.3=Seulement pour une image dont vous êtes sûr de ne plus avoir besoin : supprime le fichier. Irréversible.
+VIRT-IMAGE-ORPHAN.info.caution=Avant de supprimer une image, vérifiez qu'elle ne sert pas de base à une autre image (deuxième commande, lancée sur les images qui restent), et qu'aucun autre outil ne l'utilise : GNOME Boxes, une VM d'un autre compte, ou une VM dont vous avez retiré la définition mais que vous voulez restaurer. Gardez une copie en cas de doute.
+VIRT-IMAGE-ORPHAN.ev.1=Images non rattachées directement (portée et pool, fichier, taille)
+VIRT-IMAGE-ORPHAN.partial.1={n} pool(s) de stockage inactif(s) : leurs fichiers ne sont pas listés
+
+# ---- VIRT-GROUP ----
+VIRT-GROUP.info.title=Membres du groupe « libvirt » : {members}
+VIRT-GROUP.info.impact=Faire partie du groupe libvirt revient à être root (l'administrateur) sans taper de mot de passe : tout programme lancé sous ces comptes peut créer une VM qui lit ou modifie n'importe quel disque de l'ordinateur, et donc en prendre le contrôle.
+VIRT-GROUP.info.act.1=Affiche les membres du groupe libvirt. Lecture seule.
+VIRT-GROUP.info.act.2=Sur un ordinateur personnel dont vous êtes le seul utilisateur et où vous gérez des VM, c'est le réglage habituel (Ubuntu ajoute le compte qui installe libvirt). Là où tourne sous ces comptes du code auquel vous ne faites pas entièrement confiance (scripts, agents d'IA, dépendances de projets), envisagez de les retirer du groupe.
+VIRT-GROUP.info.act.3=Retire un compte du groupe libvirt. Prend effet à sa prochaine connexion. Réversible avec 'sudo usermod -aG libvirt <user>'.
+VIRT-GROUP.info.caution=Un compte retiré du groupe doit passer par sudo, ou taper le mot de passe administrateur dans virt-manager, pour gérer les VM du système.
+
+# ---- VIRT-LXD-GROUP ----
+VIRT-LXD-GROUP.info.title=LXD est installé et le groupe « lxd » a des membres : {members}
+VIRT-LXD-GROUP.info.impact=LXD fait tourner des conteneurs et des machines virtuelles. Faire partie du groupe lxd revient à être root (l'administrateur) sans taper de mot de passe : un membre peut lancer un conteneur qui voit tout le disque de l'ordinateur.
+VIRT-LXD-GROUP.info.act.1=Affiche les membres du groupe lxd. Lecture seule.
+VIRT-LXD-GROUP.info.act.2=Si vous n'utilisez pas LXD depuis ce compte : retire le compte du groupe lxd. Prend effet à sa prochaine connexion. Réversible avec 'sudo usermod -aG lxd <user>'.
+VIRT-LXD-GROUP.info.caution=Un compte retiré du groupe ne peut plus gérer les conteneurs LXD sans sudo.

@@ -5,8 +5,8 @@
 # ubuntu-health-check (uhc) — read-only maintenance audit for Ubuntu systems
 #
 # Scans package hygiene, kernel updates, repositories, snaps, services,
-# network exposure, Docker and basic security posture, then writes a
-# Markdown report designed to be read by a human or handed to an AI
+# network exposure, Docker, virtual machines and basic security posture,
+# then writes a Markdown report designed to be read by a human or handed to an AI
 # assistant as the starting point of a maintenance session.
 #
 # The tool never modifies the system. Persistent output (reports, log) goes to
@@ -27,7 +27,7 @@
 
 set -uo pipefail
 
-UHC_VERSION="2.9.0"
+UHC_VERSION="2.10.0"
 
 # Public repository used by the root installation wizard (preferred source:
 # the code goes straight from the repository to a root-owned folder). Set it in
