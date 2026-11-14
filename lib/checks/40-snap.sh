@@ -25,16 +25,40 @@ else
     # ---- same software installed as snap AND deb ----------------------------------
     # Transitional debs that only install the snap (version containing 'snap',
     # e.g. firefox 1:1snap1) are expected and ignored.
-    dupes=""
+    # A duplicate is a real conflict only when both sides provide a service: the
+    # snap declares at least one ('snap services' fails or prints only its
+    # header when there is none), and the deb ships a systemd service unit that
+    # is active or enabled. Without systemd, every duplicate is informational.
+    dupes=""; dupes_conflict=""
     while read -r name; do
         ver="$(dpkg-query -W -f='${db:Status-Status} ${Version}' "$name" 2>/dev/null)"
         if [[ "$ver" == installed* && "$ver" != *snap* ]]; then
-            dupes+="${name} (deb ${ver#installed })"$'\n'
+            deb_unit=""
+            if [[ -d /run/systemd/system ]] \
+               && [[ -n "$(run snap services "$name" | awk 'NR>1 && NF')" ]]; then
+                while read -r unit_path; do
+                    unit="${unit_path##*/}"
+                    if [[ "$(run systemctl is-active -- "$unit")" == active \
+                          || "$(run systemctl is-enabled -- "$unit")" == enabled ]]; then
+                        deb_unit="$unit"; break
+                    fi
+                done < <(run dpkg -L -- "$name" | grep '/systemd/system/[^/]*\.service$')
+            fi
+            if [[ -n "$deb_unit" ]]; then
+                dupes_conflict+="${name} (deb ${ver#installed }, service ${deb_unit})"$'\n'
+            else
+                dupes+="${name} (deb ${ver#installed })"$'\n'
+            fi
         fi
     done < <(snap list 2>/dev/null | awk 'NR>1{print $1}')
-    if [[ -n "$dupes" ]]; then
+    if [[ -n "$dupes_conflict" ]]; then
         finding WARNING SNAP-DUPLICATE "Software installed both as a snap and as a deb package" \
             "Two copies of the same service can conflict (for example two Bluetooth daemons competing for the same D-Bus name, which makes snap refreshes fail). Usually keep the deb for system services on a desktop and remove the snap, after checking nothing depends on it ('snap connections <name>')."
+        evidence "Duplicates with a service on both sides" "${dupes_conflict%$'\n'}"
+    fi
+    if [[ -n "$dupes" ]]; then
+        finding INFO SNAP-DUPLICATE "Software installed both as a snap and as a deb package (no service conflict)" \
+            "Both copies coexist without competing services, which is often intended (snapd, for example). Keeping both costs disk space and can make it unclear which version is launched."
         evidence "Duplicates" "${dupes%$'\n'}"
     fi
 

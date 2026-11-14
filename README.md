@@ -310,7 +310,8 @@ message.
 | ID                                       | Check                                                                                                |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `APT-LISTS-AGE`                          | Age of the package lists (results depend on them)                                                    |
-| `APT-SECURITY-UPGRADES` / `APT-UPGRADES` | Pending updates                                                                                      |
+| `APT-SECURITY-UPGRADES` / `APT-UPGRADES` | Pending updates (excluding those deferred by phased updates)                                         |
+| `APT-PHASED`                             | Updates deferred by Ubuntu's phased updates (normal, installed later on their own)                   |
 | `APT-HELD`                               | Packages on hold                                                                                     |
 | `APT-STUCK-VERSION`                      | Installed version from a removed/disabled source while Ubuntu offers another version (never updated) |
 | `APT-OBSOLETE`                           | Packages no repository provides at all                                                               |
@@ -328,12 +329,12 @@ message.
 
 ### Snap packages
 
-| ID                 | Check                                                      |
-| ------------------ | ---------------------------------------------------------- |
-| `SNAP-ERRORS`      | Failed snap operations (usually repeated refresh failures) |
-| `SNAP-DUPLICATE`   | Same software installed as snap **and** deb                |
-| `SNAP-PUBLISHER`   | Snaps from non-verified publishers                         |
-| `SNAP-CONFINEMENT` | Snaps in classic or devmode confinement                    |
+| ID                 | Check                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| `SNAP-ERRORS`      | Failed snap operations (usually repeated refresh failures)                                             |
+| `SNAP-DUPLICATE`   | Same software installed as snap **and** deb (warning when both provide a service, otherwise info)      |
+| `SNAP-PUBLISHER`   | Snaps from non-verified publishers                                                                     |
+| `SNAP-CONFINEMENT` | Snaps in classic or devmode confinement                                                                |
 
 ### Services
 

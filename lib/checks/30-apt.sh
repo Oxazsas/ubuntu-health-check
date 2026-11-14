@@ -30,9 +30,23 @@ else
 fi
 
 # ---- pending upgrades and holds ---------------------------------------------
-n_upg=0; n_sec=0
+n_upg=0; n_sec=0; phased=""
 if upgradable="$(apt "${APT_RO[@]}" list --upgradable 2>/dev/null)"; then
     upgradable="$(grep -v '^Listing' <<<"$upgradable")"
+    # Upgrades held back by Ubuntu's phased updates are listed by a simulated
+    # upgrade (no root needed, nothing changed) under a dedicated header, as
+    # indented lines of package names. They are reported apart and not counted
+    # as pending. Older apt versions print no such header: nothing changes.
+    if [[ -n "$upgradable" ]] && sim="$(run apt-get "${APT_RO[@]}" -s upgrade)"; then
+        phased="$(awk '/^The following upgrades have been deferred due to phasing:$/ {f = 1; next}
+                       f && /^[[:space:]]/ {for (i = 1; i <= NF; i++) print $i; next}
+                       f {exit}' <<<"$sim")"
+    fi
+    if [[ -n "$phased" ]]; then
+        # apt-get names foreign-architecture packages 'name:arch'; 'apt list'
+        # prints the bare name, so the suffix is dropped before comparing.
+        upgradable="$(awk -F/ 'NR==FNR {sub(/:.*/, ""); skip[$0] = 1; next} !($1 in skip)' <(printf '%s\n' "$phased") - <<<"$upgradable")"
+    fi
     if [[ -n "$upgradable" ]]; then
         n_upg=$(wc -l <<<"$upgradable")
         n_sec=$(grep -c -- '-security' <<<"$upgradable")
@@ -52,6 +66,11 @@ elif (( n_upg > 0 )); then
     evidence "apt list --upgradable" "$upgradable"
 else
     finding OK APT-UPGRADES "No pending upgrades"
+fi
+if [[ -n "$phased" ]]; then
+    finding INFO APT-PHASED "$(wc -l <<<"$phased") upgrade(s) deferred by phased updates" \
+        "This is normal: Ubuntu rolls out some updates gradually to a growing share of machines. They will be installed automatically once this machine is included; no action is required."
+    evidence "Deferred packages (apt-get -s upgrade)" "$phased"
 fi
 
 held="$(apt-mark "${APT_RO[@]}" showhold 2>/dev/null)"

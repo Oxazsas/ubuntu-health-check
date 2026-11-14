@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.6.2
+
+Two false positives fixed.
+
+- Upgrades deferred by Ubuntu's phased updates were counted as pending in
+  `APT-UPGRADES` / `APT-SECURITY-UPGRADES`. They are now read from a simulated
+  upgrade (`apt-get -s upgrade`, no root needed, nothing changed), left out of
+  those counts and reported apart by the new `APT-PHASED` (INFO), since they
+  install by themselves. With an older apt that does not report phasing, or if
+  the simulation fails, nothing changes.
+- `SNAP-DUPLICATE` was a warning for every program installed both as a snap
+  and as a deb, including expected pairs such as `snapd`. It stays a warning
+  only when both sides provide a service (the snap declares one, and the deb
+  ships a systemd service unit that is active or enabled), as with two
+  Bluetooth daemons. Other duplicates are reported under the same ID as INFO,
+  and so are all duplicates when systemd is not the init system.
+
+
 ## 2.6.1
 
 Fixes from the eighth review (no security issue found).
