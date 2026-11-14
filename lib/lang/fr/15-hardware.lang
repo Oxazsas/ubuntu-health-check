@@ -1,0 +1,76 @@
+# Messages de lib/checks/15-hardware.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.15-hardware=Santé du matériel
+
+# ---- HW-BATTERY ----
+HW-BATTERY.title.one={name} à {pct} % de sa capacité d'origine
+HW-BATTERY.title.unknown={name} (santé inconnue)
+HW-BATTERY.info.title=Batterie : {list}
+HW-BATTERY.info.impact=Une batterie perd peu à peu de sa capacité avec l'âge et les cycles de charge. Sous {threshold} % de sa capacité d'origine, l'audit la signale. Les seuils de charge, quand l'ordinateur en propose, ralentissent cette usure : la batterie arrête de se charger avant 100 %.
+HW-BATTERY.warn.title=Batterie usée : {list}
+HW-BATTERY.warn.impact=La batterie contient désormais moins de {threshold} % de la charge qu'elle contenait neuve : l'ordinateur tient bien moins longtemps sur batterie, et peut s'éteindre d'un coup alors que la charge affichée n'est pas nulle. C'est de l'usure, pas une panne logicielle.
+HW-BATTERY.warn.act.1=Affiche le détail de la batterie tel que le système le voit (capacité, charge, état). Lecture seule.
+HW-BATTERY.warn.act.2=Si l'autonomie réduite vous gêne, prévoyez de remplacer la batterie par une batterie du même modèle (fabricant et modèle figurent dans la preuve).
+HW-BATTERY.warn.act.3=Si l'ordinateur reste surtout branché, limitez la charge à environ 80 % dans les réglages du micrologiciel (BIOS/UEFI) ou dans l'outil du fabricant : cela ralentit l'usure.
+HW-BATTERY.warn.caution=Une batterie gonflée (coque déformée, pavé tactile qui se soulève) est dangereuse : n'utilisez plus l'ordinateur sur batterie et faites-la remplacer.
+HW-BATTERY.ev.1=Batteries (d'après /sys/class/power_supply)
+HW-BATTERY.ev.health=santé {pct} % (pleine {full} / d'origine {design} {unit})
+HW-BATTERY.ev.health_unknown=santé inconnue (capacités non fournies)
+HW-BATTERY.ev.cycles={n} cycles de charge
+HW-BATTERY.ev.charge=charge {pct} %
+HW-BATTERY.ev.status=état {status}
+HW-BATTERY.ev.thresholds=seuils de charge {start}-{end} %
+HW-BATTERY.ev.threshold_end=charge arrêtée à {end} %
+HW-BATTERY.ev.mode=mode de charge {mode}
+
+# ---- HW-DISK-HEALTH ----
+HW-DISK-HEALTH.ok.title=État des disques (SMART) normal ({n} disque(s) lu(s))
+HW-DISK-HEALTH.warn.title=Disque usé ou en alerte : {disks}
+HW-DISK-HEALTH.warn.impact=Le disque signale lui-même un problème : sa mémoire flash est presque usée (90 % ou plus de l'usure prévue), ou il a levé une alerte (blocs de réserve presque épuisés, température trop haute, défaut de l'alimentation de secours). Il fonctionne encore, mais le risque de perdre des données augmente.
+HW-DISK-HEALTH.warn.act.1=Vérifiez que vos fichiers importants sont sauvegardés, et que la sauvegarde est récente.
+HW-DISK-HEALTH.warn.act.2=Affiche l'état du disque et ses compteurs (paquet smartmontools). Lecture seule.
+HW-DISK-HEALTH.warn.act.3=Prévoyez le remplacement du disque, puis copiez le système ou vos données sur le nouveau.
+HW-DISK-HEALTH.warn.caution=Une alerte de température peut venir d'un ventilateur bouché ou d'une pièce trop chaude : vérifiez-le avant de conclure que le disque est en fin de vie.
+HW-DISK-HEALTH.crit.title=Disque qui se déclare en échec : {disks}
+HW-DISK-HEALTH.crit.impact=L'autodiagnostic du disque indique qu'il est en échec (ou, pour un disque NVMe, que sa fiabilité est dégradée ou qu'il est passé en lecture seule). Une perte de données peut arriver à tout moment, parfois sans autre signe.
+HW-DISK-HEALTH.crit.act.1=Copiez maintenant vos fichiers importants sur un autre disque ou une sauvegarde, avant toute autre chose.
+HW-DISK-HEALTH.crit.act.2=Affiche l'état du disque et ses compteurs (paquet smartmontools). Lecture seule.
+HW-DISK-HEALTH.crit.act.3=Remplacez le disque dès que possible ; faites-vous aider pour copier le système sur le nouveau si besoin.
+HW-DISK-HEALTH.crit.caution=Tant que les données ne sont pas copiées, évitez les opérations lourdes sur ce disque : réparation du système de fichiers, défragmentation, autotest long ou grosse copie de tout d'un coup. Copiez d'abord les fichiers les plus importants.
+HW-DISK-HEALTH.ev.1=Disques examinés (valeurs relevées ; numéros de série omis)
+HW-DISK-HEALTH.ev.standby=en veille (non réveillé : état non lu)
+HW-DISK-HEALTH.ev.nodata=aucune donnée SMART disponible
+HW-DISK-HEALTH.ev.health=état global {value}
+HW-DISK-HEALTH.ev.cw_none=aucune alerte critique
+HW-DISK-HEALTH.ev.cw=alerte critique : {flags}
+HW-DISK-HEALTH.ev.wear=usure {pct} %
+HW-DISK-HEALTH.ev.hours={n} h sous tension
+HW-DISK-HEALTH.ev.temp={c} °C
+HW-DISK-HEALTH.ev.realloc={n} secteurs réalloués
+HW-DISK-HEALTH.ev.pending={n} secteurs en attente
+HW-DISK-HEALTH.ev.media={n} erreurs de support
+HW-DISK-HEALTH.ev.source=source {src}
+HW-DISK-HEALTH.partial.1=état des disques (SMART) non lu pour {disks} : il faut lancer l'audit en root (sudo ./uhc.sh) avec le paquet smartmontools installé, ou que le service udisks2 tourne
+HW-DISK-HEALTH.partial.2=état des disques (SMART) non lu pour {disks} : installez le paquet smartmontools (il fournit smartctl), puis relancez l'audit
+
+# ---- HW-KERNEL-ERRORS ----
+HW-KERNEL-ERRORS.ok.title=Aucune erreur de disque, de système de fichiers ou de mémoire dans le journal du noyau (démarrage en cours et précédent)
+HW-KERNEL-ERRORS.ok.title_current=Aucune erreur de disque, de système de fichiers ou de mémoire dans le journal du noyau (démarrage en cours ; le précédent n'est pas conservé)
+HW-KERNEL-ERRORS.kind.io=lecture/écriture disque
+HW-KERNEL-ERRORS.kind.fs=système de fichiers
+HW-KERNEL-ERRORS.kind.hw=processeur ou mémoire
+HW-KERNEL-ERRORS.warn.title=Erreurs matérielles dans le journal du noyau : {kinds}
+HW-KERNEL-ERRORS.warn.impact=Le noyau (le cœur du système) a enregistré des erreurs qui viennent en général du matériel : un disque qui n'arrive pas à lire ou écrire certaines données, un système de fichiers abîmé, ou un défaut repéré par le processeur ou la mémoire. Une erreur isolée après avoir débranché un disque USB est sans gravité ; des erreurs répétées annoncent souvent une panne.
+HW-KERNEL-ERRORS.warn.act.1=Affiche les avertissements et erreurs du noyau depuis le démarrage, avec leur heure. Lecture seule.
+HW-KERNEL-ERRORS.warn.act.2=Pareil pour le démarrage précédent. Lecture seule.
+HW-KERNEL-ERRORS.warn.act.3=Si les erreurs citent un disque, vérifiez que vos fichiers importants sont sauvegardés, puis consultez le résultat sur l'état des disques plus haut.
+HW-KERNEL-ERRORS.warn.caution=Ne réparez pas un système de fichiers (fsck) pendant qu'il est monté, et copiez vos fichiers importants avant toute réparation : réparer un disque défaillant peut aggraver les choses.
+HW-KERNEL-ERRORS.oom.title=Programmes arrêtés faute de mémoire : {n} fois depuis le démarrage précédent
+HW-KERNEL-ERRORS.oom.impact=Quand la mémoire est pleine, le noyau arrête un programme pour en libérer (le « tueur OOM ») : le travail non enregistré dans ce programme est perdu. Ce n'est pas une panne matérielle : la mémoire manque pour ce qui tourne sur cet ordinateur.
+HW-KERNEL-ERRORS.oom.act.1=Affiche quels programmes ont été arrêtés, et quand. Lecture seule.
+HW-KERNEL-ERRORS.ev.io=Erreurs de lecture/écriture disque ({n} ligne(s) ; dernières de chaque démarrage)
+HW-KERNEL-ERRORS.ev.fs=Erreurs de système de fichiers ({n} ligne(s) ; dernières de chaque démarrage)
+HW-KERNEL-ERRORS.ev.hw=Erreurs du processeur ou de la mémoire ({n} ligne(s) ; dernières de chaque démarrage)
+HW-KERNEL-ERRORS.ev.oom=Programmes arrêtés faute de mémoire ({n} ligne(s) ; dernières de chaque démarrage)
+HW-KERNEL-ERRORS.partial.1=erreurs matérielles du journal du noyau non vérifiées : journalctl n'est pas disponible
+HW-KERNEL-ERRORS.partial.2=erreurs matérielles du journal du noyau non vérifiées : le journal du noyau n'est pas lisible avec les droits actuels (lancez en root, ou en membre du groupe adm ou systemd-journal)

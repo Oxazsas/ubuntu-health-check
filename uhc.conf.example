@@ -32,6 +32,14 @@ OLD_KERNELS_WARN=3
 # Snap normally refreshes them several times a day.
 SNAP_REFRESH_MAX_AGE=14
 
+# Report a battery whose full capacity fell below this share (percent)
+# of its design capacity.
+BATTERY_HEALTH_WARN=60
+
+# Report a scheduled backup tool whose last known backup is older than
+# this (days).
+BACKUP_MAX_AGE=30
+
 # Ports that are expected to listen on the network (port/protocol),
 # e.g. an SSH server on a machine you administer remotely.
 # ALLOWED_PORTS="22/tcp 5353/udp"

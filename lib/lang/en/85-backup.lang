@@ -1,0 +1,47 @@
+# Messages of lib/checks/85-backup.sh. Format and rules: see common.lang.
+
+section.85-backup=Backups
+
+# ---- BAK-STATUS ----
+BAK-STATUS.none.title=No backup tool detected
+BAK-STATUS.none.impact=No known backup tool is installed, and no scheduled job copies files. Limit of this check: a backup to a NAS, to an online service or a manual copy to an external disk leaves no trace here. If you have none of these, a disk failure, a theft or a mistaken deletion means losing your files for good.
+BAK-STATUS.none.act.1=If you have no backup, set one up: Déjà Dup (the "Backups" application of Ubuntu) copies your personal folder to an external disk, a network folder or an online service, on a schedule.
+BAK-STATUS.info.title=Backup tools detected: {tools}
+BAK-STATUS.info.impact=Inventory of the backup tools and scheduled copies found here, with the date of the last backup when it can be read locally. A snapshot kept on the same disk as the system (Timeshift, snapper) protects against a bad update, not against the failure or theft of that disk. Limit: a backup to a NAS, an online service or a manual copy leaves no trace here. The audit reports a scheduled backup older than {days} days.
+BAK-STATUS.warn.title=Scheduled backup late or failed: {tools}
+BAK-STATUS.warn.impact=A backup that is meant to run on a schedule has not succeeded for more than {days} days, or its last scheduled run failed. Files created or changed since the last good backup would be lost with the disk.
+BAK-STATUS.warn.act.1=Open the backup tool, look at its last error and run a backup by hand; check that it completes.
+BAK-STATUS.warn.act.2=Lists the scheduled tasks (timers) with their last and next run. Read-only.
+BAK-STATUS.warn.act.3=Shows the last messages of the backup service named in the evidence (add --user for a timer of your session). Read-only.
+BAK-STATUS.warn.act.4=For a backup to an external disk or a NAS, check that the destination is connected and has free space.
+BAK-STATUS.warn.caution=A backup is only proven by a restore: after fixing it, restore one file to another folder and open it.
+BAK-STATUS.ev.1=Backup tools and scheduled jobs (configuration files are not opened)
+BAK-STATUS.tool.timer=backup timer
+BAK-STATUS.ev.scope.system=system timer {unit}
+BAK-STATUS.ev.scope.user=user timer {unit}
+BAK-STATUS.ev.timer_on=scheduled
+BAK-STATUS.ev.timer_off=timer not active (not scheduled)
+BAK-STATUS.ev.last_run=last run {when}
+BAK-STATUS.ev.no_run=no known run
+BAK-STATUS.ev.failed=last run failed ({result})
+BAK-STATUS.ev.running=running now
+BAK-STATUS.ev.last={date} ({days} days ago)
+BAK-STATUS.ev.cron=cron {label} ({when})
+BAK-STATUS.ev.prog=runs {prog}
+BAK-STATUS.ev.cron_last=last run unknown
+BAK-STATUS.ev.ts_sched=scheduled ({list})
+BAK-STATUS.ev.ts_nosched=no schedule set
+BAK-STATUS.ev.ts_noconf=not set up yet (no /etc/timeshift/timeshift.json)
+BAK-STATUS.ev.samedisk=snapshots on the system disk
+BAK-STATUS.ev.ts_snaps={n} snapshot(s), newest {when}
+BAK-STATUS.ev.last_unknown=last backup unknown here
+BAK-STATUS.ev.dd_sched=automatic backup every {days} day(s)
+BAK-STATUS.ev.dd_nosched=automatic backup off
+BAK-STATUS.ev.dd_last=last successful backup {when}
+BAK-STATUS.ev.never=no successful backup recorded
+BAK-STATUS.ev.settings_unknown=settings not read
+BAK-STATUS.ev.sched_found=found in a schedule above
+BAK-STATUS.ev.sched_none=no schedule found here
+BAK-STATUS.ev.config=configuration present ({list})
+BAK-STATUS.ev.noconfig=no configuration found
+BAK-STATUS.partial.dejadup=Déjà Dup settings (schedule, last backup) not read: gsettings is not available or cannot read the settings of the audited user

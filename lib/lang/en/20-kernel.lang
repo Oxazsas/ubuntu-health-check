@@ -61,3 +61,20 @@ KRN-OLD.info.act.2=Lists the packages no longer needed (often old kernels) that 
 KRN-OLD.info.act.3=Removes those packages. A removed kernel can be installed again as long as Ubuntu still offers it.
 KRN-OLD.info.caution=Read the list shown by the simulation first, and stop if it contains the kernel you are running or ubuntu-desktop. If old kernels stay after this, check the kernel metapackage findings above.
 KRN-OLD.ev.1=Installed kernel images
+
+# ---- KRN-MODULES ----
+# Out-of-tree drivers: drivers that are not part of the kernel itself and must
+# be provided for each kernel (packaged, or built locally by DKMS).
+KRN-MODULES.ok.title=Out-of-tree drivers present for every installed kernel ({drivers})
+KRN-MODULES.warn.title=An out-of-tree driver is missing for the running kernel or the next start-up ({kernels})
+KRN-MODULES.warn.impact=Some drivers are not part of the kernel and must be installed separately for each kernel: graphics drivers (NVIDIA), some Wi-Fi or camera drivers. Another installed kernel has a driver that this one lacks. On this kernel, the device concerned does not work, or works in a degraded mode: for a graphics card, a slow display or a black screen.
+KRN-MODULES.info.title=An out-of-tree driver is missing for an older fallback kernel ({kernels})
+KRN-MODULES.info.impact=Some drivers are not part of the kernel and must be installed separately for each kernel (NVIDIA graphics, some Wi-Fi or camera drivers). The kernel in use and the one started by default have them; an older kernel kept as a fallback does not. Nothing changes as long as you do not start that kernel; if you start it from the boot menu, the device concerned may not work (for a graphics card: a slow display or a black screen). Ubuntu usually installs those drivers for the newest kernel only.
+KRN-MODULES.act.list=Lists the installed driver packages, with the kernel each one is built for. Read-only.
+KRN-MODULES.act.dkms=Lists the drivers built locally by DKMS, and for which kernels. Read-only.
+KRN-MODULES.act.simulate=Shows what installing the missing driver package would do (the name is given in the evidence). Simulation only: nothing is installed. The package may no longer be offered for an old kernel.
+KRN-MODULES.warn.act.headers=For a DKMS driver, the kernel headers must be installed (package linux-headers-<kernel>): DKMS then builds the driver at the next kernel installation or update. Check with apt-cache policy linux-headers-<kernel>.
+KRN-MODULES.warn.caution=Do not restart on the kernel concerned before the driver is installed if the device is essential (the graphics card for a desktop). If the computer then starts with a black screen, choose the previous kernel in the "Advanced options for Ubuntu" menu at start-up. With Secure Boot, a driver built by DKMS must be signed with a key enrolled at start-up (MOK).
+KRN-MODULES.ev.1=Kernels without a driver that another kernel has
+KRN-MODULES.ev.pkg={kernel}: no {driver} driver package (present for {with}; package expected for this kernel: {package})
+KRN-MODULES.ev.dkms={kernel}: DKMS module {module} not installed (installed for {with})

@@ -648,13 +648,31 @@ else
 fi
 
 # ---- Ubuntu Pro security coverage ---------------------------------------------
-# 'pro' writes logs and caches when run as root: run it as the audited user.
+# 'pro' writes logs and caches when run as root (/var/log/ubuntu-advantage.log,
+# /run/ubuntu-advantage): run it as the audited user. Run as a user, it still
+# writes its log, ubuntu-pro.log, and may write a cache file, in
+# $XDG_CACHE_HOME/ubuntu-pro (~/.cache/ubuntu-pro by default: see
+# get_user_cache_dir in uaclient/system.py and setup_cli_logging in
+# uaclient/log.py), and Python creates unnamed temporary files in $TMPDIR.
+# Both point to a private folder of this run, removed right after. As root,
+# the folder is created by the audited user (the work folder of this run is
+# root-only), under /tmp/uhc.pro.*; this also keeps pro away from root's
+# HOME, which runuser does not change.
 if have pro; then
     pro_out=""
     if [[ "$IS_ROOT" == 1 && "$TARGET_USER" == root ]]; then
         partial APT-PRO-STATUS "$(t APT-PRO-STATUS.partial.1)"
     else
-        pro_out="$(as_target timeout "$CMD_TIMEOUT" pro security-status 2>/dev/null)"
+        if [[ "$IS_ROOT" == 1 ]]; then
+            pro_tmp="$(as_target mktemp -d /tmp/uhc.pro.XXXXXXXX 2>/dev/null)"
+        else
+            pro_tmp="$(mktemp -d "${WORK_DIR}/pro.XXXXXXXX" 2>/dev/null)"
+        fi
+        if [[ "$pro_tmp" =~ ^(/tmp/uhc\.pro\.|"$WORK_DIR"/pro\.)[A-Za-z0-9]{8}$ && -d "$pro_tmp" ]]; then
+            pro_out="$(as_target env XDG_CACHE_HOME="$pro_tmp" TMPDIR="$pro_tmp" \
+                       timeout "$CMD_TIMEOUT" pro security-status 2>/dev/null)"
+            as_target rm -rf -- "$pro_tmp"
+        fi
     fi
     if [[ -n "$pro_out" ]]; then
         pro_detached=0

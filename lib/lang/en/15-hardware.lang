@@ -1,0 +1,76 @@
+# Messages of lib/checks/15-hardware.sh. Format and rules: see common.lang.
+
+section.15-hardware=Hardware health
+
+# ---- HW-BATTERY ----
+HW-BATTERY.title.one={name} {pct} % of its original capacity
+HW-BATTERY.title.unknown={name} (health unknown)
+HW-BATTERY.info.title=Battery: {list}
+HW-BATTERY.info.impact=A battery slowly loses capacity with age and charge cycles. Below {threshold} % of its original capacity, the audit reports it. Charge thresholds, when the computer offers them, slow down this wear: the battery stops charging before 100 %.
+HW-BATTERY.warn.title=Worn battery: {list}
+HW-BATTERY.warn.impact=The battery now holds less than {threshold} % of the charge it held when new: the computer runs much less time unplugged, and may shut down suddenly when the charge shown is still above zero. This is wear, not a software fault.
+HW-BATTERY.warn.act.1=Shows the details of the battery as the system sees them (capacity, charge, state). Read-only.
+HW-BATTERY.warn.act.2=If the shorter battery life bothers you, plan a replacement with a battery of the same model (manufacturer and model are in the evidence).
+HW-BATTERY.warn.act.3=If the computer mostly stays plugged in, limit the charge to about 80 % in the firmware settings (BIOS/UEFI) or in the manufacturer's tool: this slows down further wear.
+HW-BATTERY.warn.caution=A swollen battery (case that bulges, touchpad that lifts) is dangerous: stop using the computer on battery and have it replaced.
+HW-BATTERY.ev.1=Batteries (from /sys/class/power_supply)
+HW-BATTERY.ev.health=health {pct} % (full {full} / design {design} {unit})
+HW-BATTERY.ev.health_unknown=health unknown (capacities not reported)
+HW-BATTERY.ev.cycles={n} charge cycles
+HW-BATTERY.ev.charge=charge {pct} %
+HW-BATTERY.ev.status=state {status}
+HW-BATTERY.ev.thresholds=charge thresholds {start}-{end} %
+HW-BATTERY.ev.threshold_end=charge stops at {end} %
+HW-BATTERY.ev.mode=charge mode {mode}
+
+# ---- HW-DISK-HEALTH ----
+HW-DISK-HEALTH.ok.title=Disk health (SMART) normal ({n} disk(s) read)
+HW-DISK-HEALTH.warn.title=Disk worn out or reporting an alert: {disks}
+HW-DISK-HEALTH.warn.impact=The disk itself reports a problem: its flash memory is nearly used up (90 % or more of its rated wear), or it raised an alert (spare blocks running out, temperature too high, backup power fault). It still works, but the risk of losing data grows.
+HW-DISK-HEALTH.warn.act.1=Check that your important files are backed up, and that the backup is recent.
+HW-DISK-HEALTH.warn.act.2=Shows the health of the disk and its counters (package smartmontools). Read-only.
+HW-DISK-HEALTH.warn.act.3=Plan the replacement of the disk, then copy the system or your data onto the new one.
+HW-DISK-HEALTH.warn.caution=A temperature alert can come from a blocked fan or a hot room: check this before concluding that the disk is failing.
+HW-DISK-HEALTH.crit.title=Disk declaring itself failing: {disks}
+HW-DISK-HEALTH.crit.impact=The disk's own self-test says it is failing (or, for an NVMe disk, that its reliability is degraded or that it switched to read-only). Data loss can happen at any moment, sometimes with no further warning.
+HW-DISK-HEALTH.crit.act.1=Copy your important files to another disk or to a backup now, before anything else.
+HW-DISK-HEALTH.crit.act.2=Shows the health of the disk and its counters (package smartmontools). Read-only.
+HW-DISK-HEALTH.crit.act.3=Replace the disk as soon as possible; ask for help to copy the system onto the new one if needed.
+HW-DISK-HEALTH.crit.caution=Until the data is copied, avoid heavy operations on this disk: file system repair, defragmentation, long self-tests or a large copy of everything at once. Copy the most important files first.
+HW-DISK-HEALTH.ev.1=Disks examined (parsed values; serial numbers left out)
+HW-DISK-HEALTH.ev.standby=asleep (not woken up: health not read)
+HW-DISK-HEALTH.ev.nodata=no SMART data available
+HW-DISK-HEALTH.ev.health=overall health {value}
+HW-DISK-HEALTH.ev.cw_none=no critical warning
+HW-DISK-HEALTH.ev.cw=critical warning: {flags}
+HW-DISK-HEALTH.ev.wear=wear {pct} %
+HW-DISK-HEALTH.ev.hours={n} h powered on
+HW-DISK-HEALTH.ev.temp={c} °C
+HW-DISK-HEALTH.ev.realloc={n} reallocated sectors
+HW-DISK-HEALTH.ev.pending={n} pending sectors
+HW-DISK-HEALTH.ev.media={n} media errors
+HW-DISK-HEALTH.ev.source=source {src}
+HW-DISK-HEALTH.partial.1=disk health (SMART) not read for {disks}: reading it needs the audit to run as root (sudo ./uhc.sh) with the package smartmontools installed, or the udisks2 service running
+HW-DISK-HEALTH.partial.2=disk health (SMART) not read for {disks}: install the package smartmontools (it provides smartctl), then run the audit again
+
+# ---- HW-KERNEL-ERRORS ----
+HW-KERNEL-ERRORS.ok.title=No disk, file system or memory error in the kernel log (current and previous start-up)
+HW-KERNEL-ERRORS.ok.title_current=No disk, file system or memory error in the kernel log (current start-up; the previous one is not kept)
+HW-KERNEL-ERRORS.kind.io=disk read/write
+HW-KERNEL-ERRORS.kind.fs=file system
+HW-KERNEL-ERRORS.kind.hw=processor or memory
+HW-KERNEL-ERRORS.warn.title=Hardware errors in the kernel log: {kinds}
+HW-KERNEL-ERRORS.warn.impact=The kernel (the core of the system) recorded errors that usually come from the hardware: a disk that cannot read or write some data, a damaged file system, or a fault detected by the processor or the memory. A single error after unplugging a USB disk is harmless; repeated errors often announce a failure.
+HW-KERNEL-ERRORS.warn.act.1=Shows the warnings and errors of the kernel since the computer started, with their time. Read-only.
+HW-KERNEL-ERRORS.warn.act.2=Same for the previous start-up. Read-only.
+HW-KERNEL-ERRORS.warn.act.3=If the errors name a disk, check that your important files are backed up, then look at the disk health result above.
+HW-KERNEL-ERRORS.warn.caution=Do not repair a file system (fsck) while it is mounted, and copy your important files before any repair: a repair on a failing disk can make things worse.
+HW-KERNEL-ERRORS.oom.title=Programs stopped for lack of memory: {n} time(s) since the previous start-up
+HW-KERNEL-ERRORS.oom.impact=When the memory is full, the kernel stops a program to free some (the out-of-memory killer): unsaved work in that program is lost. This is not a hardware fault: memory is short for what runs on this computer.
+HW-KERNEL-ERRORS.oom.act.1=Shows which programs were stopped and when. Read-only.
+HW-KERNEL-ERRORS.ev.io=Disk read/write errors ({n} line(s); last ones of each start-up)
+HW-KERNEL-ERRORS.ev.fs=File system errors ({n} line(s); last ones of each start-up)
+HW-KERNEL-ERRORS.ev.hw=Processor or memory errors ({n} line(s); last ones of each start-up)
+HW-KERNEL-ERRORS.ev.oom=Programs stopped for lack of memory ({n} line(s); last ones of each start-up)
+HW-KERNEL-ERRORS.partial.1=hardware errors in the kernel log not checked: journalctl is not available
+HW-KERNEL-ERRORS.partial.2=hardware errors in the kernel log not checked: the kernel log cannot be read with the current privileges (run as root, or as a member of the adm or systemd-journal group)

@@ -45,7 +45,8 @@ use [Lynis](https://cisofy.com/lynis/) as well — the two are complementary.
 - **Nothing on the system is modified.** No `apt update`, no install or
   removal, no service or configuration change. APT queries run with an
   in-memory cache (they do not even rewrite `/var/cache/apt/*.bin`), and
-  `pro` is run as the regular user so it does not write root logs.
+  `pro` is run as the regular user so it does not write root logs, with its
+  own log and cache redirected to a private temporary folder.
 - **Persistent output stays in the data directory** (`reports/`, `logs/`;
   by default the tool directory). Transient files live in a private temporary
   directory (mode 700) removed at exit.
@@ -264,11 +265,38 @@ Each run produces:
    machine context, summary table, the action plan, one section per domain
    with every finding and the raw evidence (command output), the list of
    partial checks, and closing notes for an AI assistant.
-3. **A log line** in `logs/uhc.log` (date, counts per severity, report path).
+3. **A log line** in `logs/uhc.log` (date, counts per severity, report path,
+   then `new=N worse=N resolved=N` compared with the previous audit; `-` when
+   there is nothing to compare with). Fields are only ever added at the end.
 4. **A desktop notification** when there is at least one CRITICAL finding
    (configurable).
 
 Only the last 12 reports are kept (configurable). The log keeps 1000 lines.
+
+### Since the last audit
+
+Each complete run saves its results by ID in `logs/last-audit-user.state`
+(unprivileged) or `logs/last-audit-root.state` (sudo), in the data directory,
+mode 600. The next run at the same privilege level compares with it: the
+report gets a "Since the last audit" section after the summary, and the
+terminal one or two lines. Findings are listed as new, worse, improved or
+resolved, with their ID and severity before → after; changes between OK and
+INFO are only counted.
+
+- An ID silenced by `IGNORE_CHECKS`, or not checked because its check was
+  partial, is never shown as resolved; it keeps its previous result for the
+  next comparison.
+- After an update of the tool, IDs the previous state did not know are listed
+  as "checks possibly new in this version", not as new problems.
+- The state file holds the tool version, the date, the privilege level and
+  lines `SEVERITY<TAB>ID<TAB>count` (plus `PARTIAL<TAB>ID<TAB>1`): no title,
+  no host, user or package name. It is read as data, never executed, and set
+  aside as a whole if anything in it looks wrong. Deleting it restarts the
+  comparison.
+- Like the reports and the log, the state of a sudo run lives in your data
+  directory and is written with your privileges: a program running under
+  your account could alter it and hide a "new" finding from the comparison.
+  The findings themselves are not affected.
 
 ### Explanations and proposed actions
 
@@ -316,6 +344,14 @@ message.
 | `SYS-DISK-USAGE` | Only when a filesystem is above `DISK_WARN`: measured size of what can be freed (disabled snap revisions, `~/snap`, Docker, older kernels, journal, apt cache), largest first; the matching commands are proposed under `SYS-DISK` |
 | `SYS-LOCAL-BIN`  | Inventory of executables in `/usr/local/bin` and `/usr/local/sbin` that no package owns (name, size, date, link target; contents never read) |
 
+### Hardware health
+
+| ID                 | Check |
+| ------------------ | ----- |
+| `HW-BATTERY`       | Battery wear (full capacity against design capacity), charge cycles, charge thresholds; WARNING below `BATTERY_HEALTH_WARN` %. Nothing on a machine without a battery |
+| `HW-DISK-HEALTH`   | SMART health of the internal disks: `smartctl` or `nvme` as root, the data udisks2 already holds without root (no daemon is started, a sleeping disk is not woken, serial numbers are never shown). CRITICAL when a disk reports itself failing, WARNING when NVMe wear reaches 90 % or a critical warning is raised. Skipped in virtual machines and containers |
+| `HW-KERNEL-ERRORS` | Disk I/O errors, file system errors, machine checks and memory (EDAC) errors in the kernel log of the current and previous boot (WARNING); out-of-memory kills alone (INFO) |
+
 ### Kernel
 
 | ID                  | Check                                                                                             |
@@ -326,6 +362,7 @@ message.
 | `KRN-PENDING`       | Newer kernel offered by the repositories but not installed                                        |
 | `KRN-OLD`           | Number of kernel images installed                                                                 |
 | `KRN-NONE`          | No distribution kernel (container, WSL)                                                           |
+| `KRN-MODULES`       | Out-of-tree drivers (`linux-modules-<driver>-<kernel>` packages, DKMS) missing for an installed kernel that another installed kernel has: WARNING for the running or newest kernel, INFO for an older fallback kernel |
 
 ### APT packages and repositories
 
@@ -570,6 +607,12 @@ and only a few attributes are extracted from it.
 | `SEC-HOME-PERMS`    | Home directory readable by other users                                   |
 | `SEC-SECRET-PERMS`  | Files that usually hold credentials (`~/.netrc`, `~/.git-credentials`, `~/.aws/credentials`, `~/.docker/config.json`, `~/.config/gh/hosts.yml`, Claude Code, FileZilla…) readable or writable by group or others, or not owned by the user; mode only, files never opened (INFO when no other account can reach them) |
 
+### Backups
+
+| ID           | Check |
+| ------------ | ----- |
+| `BAK-STATUS` | Inventory of backup tools (Timeshift, Déjà Dup, borg/borgmatic, restic, rsnapshot, duplicity, Back In Time, Pika Backup, snapper, kopia), backup timers and cron jobs running a copy program (rsync, rclone, tar…): scheduled or not, last known backup. WARNING only when a scheduled backup is older than `BACKUP_MAX_AGE` days or its last run failed; INFO otherwise, also when no tool is found. A backup to a NAS, an online service or a manual copy cannot be seen from here. Configuration files of backup tools are never opened |
+
 ## Configuration
 
 ```bash
@@ -584,7 +627,11 @@ packages, report retention, language) are documented in
 default is kept.
 
 `SNAP_REFRESH_MAX_AGE` (days, default 14) sets how old the last snap refresh
-may be before `SNAP-REFRESH` reports it.
+may be before `SNAP-REFRESH` reports it. `BATTERY_HEALTH_WARN` (percent,
+default 60) is the share of its design capacity below which a battery is
+reported by `HW-BATTERY`. `BACKUP_MAX_AGE` (days, default 30) is the age of
+the last backup of a scheduled tool above which `BAK-STATUS` warns; raise it
+if your backups are scheduled less often.
 
 Typical use: silence an accepted risk you cannot fix right now.
 

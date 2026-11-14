@@ -54,6 +54,32 @@ ui.sum.finding=Finding
 ui.sum.none=No critical or warning findings.
 ui.sum.silenced=Silenced by configuration (IGNORE_CHECKS): `{ids}`
 
+# ---- since the last audit (comparison with the saved results of the previous run) ----
+ui.cmp.title=Since the last audit
+ui.cmp.first_user=No earlier unprivileged audit to compare with: this one becomes the reference for the next comparison.
+ui.cmp.first_root=No earlier audit as root to compare with: this one becomes the reference for the next comparison.
+ui.cmp.unusable=The saved results of the previous audit could not be used (unreadable, damaged or in an unknown format). This audit becomes the new reference.
+ui.cmp.intro_user=Compared with the previous unprivileged audit, of {date} (ubuntu-health-check {version}). Audits run with sudo are compared separately.
+ui.cmp.intro_root=Compared with the previous audit as root, of {date} (ubuntu-health-check {version}). Unprivileged audits are compared separately.
+ui.cmp.version=The tool changed version since then ({from} → {to}). IDs the old version never reported are listed as checks possibly new in this version, not as new problems. A check removed or renamed by the update would show as resolved.
+ui.cmp.none=No finding new, worse, improved or resolved.
+ui.cmp.new=**New** ({n}): {items}
+ui.cmp.worse=**Worse** ({n}): {items}
+ui.cmp.better=**Improved** ({n}): {items}
+ui.cmp.resolved=**Resolved** ({n}): {items}
+ui.cmp.checks=**Checks possibly new in this version** ({n}): {items}
+ui.cmp.ignored=**Not compared, silenced by IGNORE_CHECKS** ({n}): {items}
+ui.cmp.partial=**Not checked this time** (partial check; it was a warning or critical finding) ({n}): {items}
+ui.cmp.minor=Changes between OK and INFO: {n} (not listed).
+ui.cmp.absent=not reported
+ui.cmp.details=Findings still present are detailed below under their ID.
+ui.cmp.term_first=Since the last audit: first audit at this privilege level.
+ui.cmp.term_unusable=Since the last audit: previous results unusable, this audit becomes the reference.
+ui.cmp.term_none=Since the last audit ({date}): no change.
+ui.cmp.term_counts=Since the last audit ({date}): {new} new, {worse} worse, {better} improved, {resolved} resolved.
+ui.cmp.term_version=Tool updated ({from} → {to}): {n} check(s) possibly new.
+ui.cmp.term_ids=New or worse: {ids}
+
 # ---- findings (report body, action plan) ----
 # ui.colon is the punctuation before a list or a value (French puts a space
 # before it).

@@ -27,7 +27,7 @@
 
 set -uo pipefail
 
-UHC_VERSION="2.10.0"
+UHC_VERSION="2.11.0"
 
 # Public repository used by the root installation wizard (preferred source:
 # the code goes straight from the repository to a root-owned folder). Set it in
@@ -129,6 +129,8 @@ DISK_CRIT=95             # % used that triggers a CRITICAL
 APT_LISTS_MAX_AGE=7      # days before APT package lists are considered stale
 OLD_KERNELS_WARN=3       # installed kernel images above which to report
 SNAP_REFRESH_MAX_AGE=14  # days without a snap refresh before it is reported
+BATTERY_HEALTH_WARN=60   # % of the design capacity below which a battery is reported
+BACKUP_MAX_AGE=30        # days since the last backup of a scheduled backup tool
 ALLOWED_PORTS=""         # listening ports considered expected, e.g. "22/tcp"
 IGNORE_CHECKS=""         # finding IDs to silence, e.g. "SEC-DISK-ENC"
 IGNORE_PACKAGES=""       # packages to leave out of the obsolete-package list
@@ -342,7 +344,7 @@ load_config() {
         value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/')"
         case "$key" in
             # No leading zero: Bash would read "08" as an invalid octal number.
-            KEEP_REPORTS|DISK_WARN|DISK_CRIT|APT_LISTS_MAX_AGE|OLD_KERNELS_WARN|SNAP_REFRESH_MAX_AGE|MAX_EVIDENCE_LINES|CMD_TIMEOUT)
+            KEEP_REPORTS|DISK_WARN|DISK_CRIT|APT_LISTS_MAX_AGE|OLD_KERNELS_WARN|SNAP_REFRESH_MAX_AGE|BATTERY_HEALTH_WARN|BACKUP_MAX_AGE|MAX_EVIDENCE_LINES|CMD_TIMEOUT)
                 pattern='^(0|[1-9][0-9]{0,4})$' ;;
             NOTIFY_LEVEL)    pattern='^(critical|warning|none)$' ;;
             ALLOWED_PORTS)   pattern='^([0-9]{1,5}/(tcp|udp)( +|$))*$' ;;
@@ -370,6 +372,8 @@ load_config() {
     (( MAX_EVIDENCE_LINES >= 1 )) || MAX_EVIDENCE_LINES=40
     (( CMD_TIMEOUT >= 1 )) || CMD_TIMEOUT=30
     (( SNAP_REFRESH_MAX_AGE >= 1 )) || { echo "uhc: SNAP_REFRESH_MAX_AGE must be at least 1, using 14" >&2; SNAP_REFRESH_MAX_AGE=14; }
+    (( BATTERY_HEALTH_WARN >= 1 && BATTERY_HEALTH_WARN <= 100 )) || { echo "uhc: BATTERY_HEALTH_WARN must be between 1 and 100, using 60" >&2; BATTERY_HEALTH_WARN=60; }
+    (( BACKUP_MAX_AGE >= 1 )) || { echo "uhc: BACKUP_MAX_AGE must be at least 1, using 30" >&2; BACKUP_MAX_AGE=30; }
 }
 load_config "$CONFIG_FILE"
 
@@ -448,13 +452,19 @@ EXIT_CODE=0
 (( COUNT_WARNING > 0 )) && EXIT_CODE=1
 (( COUNT_CRITICAL > 0 )) && EXIT_CODE=2
 
+# Comparison with the previous audit at this privilege level (report section,
+# terminal lines, log counters). The new state is saved only once the report
+# is written: a run that stops earlier leaves the previous state in place.
+compare_previous
 write_report || die "cannot write the report to $REPORT_DIR"
 rotate_reports
 write_log
+save_state
 notify
 
 say ""
 say "${C_BLD}$(t ui.result)${C_RST} ${C_RED}${COUNT_CRITICAL} critical${C_RST}, ${C_YEL}${COUNT_WARNING} warning${C_RST}, ${COUNT_INFO} info, ${C_GRN}${COUNT_OK} ok${C_RST}, $(t ui.result_partial n="$COUNT_PARTIAL")"
+print_compare
 say "$(t ui.report_path path="$REPORT_FILE")"
 # The action plan, unless the terminal output is off or kept to one line per
 # finding (it is in the report either way).

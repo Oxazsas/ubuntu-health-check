@@ -147,6 +147,278 @@ render_plan() {
     done
 }
 
+# ---- comparison with the previous audit -------------------------------------------
+# At the end of each complete run, the results are saved by ID in a small state
+# file of the data directory, logs/last-audit-<user|root>.state (one per
+# privilege level: an unprivileged audit, with its partial checks, is never
+# compared with a root audit). The next run at the same level compares its own
+# results with it. Format (tab-separated, sorted, nothing else):
+#   # ubuntu-health-check state 1
+#   version<TAB>2.11.0
+#   date<TAB>2026-11-14T09:30:00+0100
+#   privileges<TAB>user
+#   SEVERITY<TAB>ID<TAB>COUNT      highest severity of the ID, and how many
+#                                  times it was reported at that severity
+#   PARTIAL<TAB>ID<TAB>1           partial (skipped) check
+# No title, host, user, package or other name: the file holds nothing that
+# --sanitize would mask. It is read as data, never sourced: every line must
+# match one of the patterns below, or the whole file is set aside (treated as
+# a first audit). Results silenced by IGNORE_CHECKS are not recorded as such;
+# an ID that is silenced today, or not reported because its check was partial
+# today, keeps its previous result (carried over), so that the next
+# comparison is made with the last time it was actually checked.
+STATE_MAGIC="# ubuntu-health-check state 1"
+STATE_MAX_BYTES=262144
+CMP_NEW="-" CMP_WORSE="-" CMP_RESOLVED="-"
+CMP_TERM=()
+declare -A PREV_SEV=() PREV_N=() PREV_PARTIAL=() CARRY=()
+PREV_VERSION="" PREV_DATE=""
+
+# priv_word — "root" or "user", as in the state file name and the log line.
+priv_word() { if [[ "$IS_ROOT" == 1 ]]; then echo root; else echo user; fi; }
+
+# read_state FILE — load the previous state into PREV_* (parse_state does
+# the reading; on failure, PREV_* are emptied again). Returns 0 when it is
+# usable, 1 when there is none, 2 when it cannot be used (unreadable, not a
+# regular file, too large, corrupted, other format or privilege level).
+# Read with the data owner's privileges; NUL bytes are turned into a byte
+# that no pattern accepts.
+parse_state() {
+    local file="$1" content rc line kind id cnt n=0 seen_v=0 seen_d=0 seen_p=0
+    local id_re='^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$'
+    local res_re=$'^(CRITICAL|WARNING|INFO|OK|PARTIAL)\t([A-Z][A-Z0-9-]{0,63})\t([1-9][0-9]{0,3})$'
+    local ver_re=$'^version\t([0-9]{1,4}(\\.[0-9]{1,4}){1,3}([~+-][A-Za-z0-9.]{1,20})?)$'
+    local date_re=$'^date\t([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{4})$'
+    local priv_re=$'^privileges\t(root|user)$'
+    # $1 is expanded by the inner sh, which receives the path as an argument.
+    # shellcheck disable=SC2016
+    content="$(as_data_owner sh -c '
+        [ -e "$1" ] || [ -h "$1" ] || exit 10
+        { [ -h "$1" ] || [ ! -f "$1" ]; } && exit 11
+        head -c "$2" -- "$1" 2>/dev/null | tr "\000" "\001"' _ "$file" "$STATE_MAX_BYTES")"
+    rc=$?
+    (( rc == 10 )) && return 1
+    (( rc == 0 && ${#content} < STATE_MAX_BYTES )) || return 2
+    while IFS= read -r line; do
+        n=$((n + 1))
+        if (( n == 1 )); then
+            [[ "$line" == "$STATE_MAGIC" ]] || return 2
+        elif [[ "$line" =~ $res_re ]]; then
+            kind="${BASH_REMATCH[1]}" id="${BASH_REMATCH[2]}" cnt="${BASH_REMATCH[3]}"
+            [[ "$id" =~ $id_re ]] || return 2
+            if [[ "$kind" == PARTIAL ]]; then
+                [[ -z "${PREV_PARTIAL[$id]+x}" ]] || return 2
+                PREV_PARTIAL[$id]=1
+            else
+                [[ -z "${PREV_SEV[$id]+x}" ]] || return 2
+                PREV_SEV[$id]="$kind"
+                PREV_N[$id]="$cnt"
+            fi
+        elif [[ "$line" =~ $ver_re ]]; then
+            (( seen_v++ == 0 )) || return 2
+            PREV_VERSION="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $date_re ]]; then
+            (( seen_d++ == 0 )) || return 2
+            PREV_DATE="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $priv_re ]]; then
+            (( seen_p++ == 0 )) || return 2
+            [[ "${BASH_REMATCH[1]}" == "$(priv_word)" ]] || return 2
+        else
+            return 2
+        fi
+    done <<<"$content"
+    (( seen_v == 1 && seen_d == 1 && seen_p == 1 )) || return 2
+}
+read_state() {
+    local rc
+    parse_state "$1"
+    rc=$?
+    (( rc == 0 )) || { PREV_SEV=(); PREV_N=(); PREV_PARTIAL=(); PREV_VERSION=""; PREV_DATE=""; }
+    return "$rc"
+}
+
+# cmp_sev SEVERITY COUNT [FORCE] — "WARNING", or "WARNING ×2" when COUNT is
+# above 1 or FORCE is given (same severity on both sides).
+cmp_sev() {
+    if (( $2 > 1 )) || [[ -n "${3:-}" ]]; then printf '%s ×%d' "$1" "$2"; else printf '%s' "$1"; fi
+}
+
+# cmp_list KEY ITEM... — one bullet of the comparison (KEY with {n} and the
+# items joined by commas); nothing when there is no item.
+cmp_list() {
+    local key="$1" out
+    shift
+    (( $# > 0 )) || return 0
+    out="$(printf '%s, ' "$@")"
+    printf -- '- %s\n' "$(t "$key" n="$#" items="${out%, }")"
+}
+
+# compare_previous — compare this run with the state of the previous audit at
+# the same privilege level, write the report section to WORK_DIR/compare.md
+# and prepare the terminal lines (CMP_TERM) and the log counters. Rules, by ID
+# (highest severity, then number of occurrences at that severity):
+#   new       absent before, WARNING or CRITICAL now;
+#   worse     severity up to WARNING or CRITICAL, or same WARNING/CRITICAL
+#             severity reported more times;
+#   improved  WARNING/CRITICAL down to INFO or a lower WARNING/CRITICAL, or
+#             reported fewer times at the same severity;
+#   resolved  WARNING/CRITICAL before, OK or not reported now.
+# Changes that stay between OK and INFO are only counted. IDs silenced by
+# IGNORE_CHECKS today are left out; a previous problem that is not reported
+# because its check was partial today is "not checked", not resolved. When
+# the tool changed version, an ID the previous state did not know at all is a
+# check possibly added by the new version, not a new problem.
+compare_previous() {
+    local rc id o n on nn s_old s_new same vchanged=0 minor=0 d item
+    local -a l_new=() l_worse=() l_better=() l_resolved=() l_check=() l_ign=() l_part=() term_ids=()
+    CMP_FILE="${WORK_DIR}/compare.md"
+    CMP_STATE_FILE="${LOG_DIR}/last-audit-$(priv_word).state"
+    read_state "$CMP_STATE_FILE"
+    rc=$?
+    {
+        printf '\n## %s\n\n' "$(t ui.cmp.title)"
+        if (( rc == 1 )); then
+            if [[ "$IS_ROOT" == 1 ]]; then t ui.cmp.first_root; else t ui.cmp.first_user; fi
+            printf '\n'
+            CMP_TERM=("${C_DIM}$(t ui.cmp.term_first)${C_RST}")
+            return 0
+        elif (( rc != 0 )); then
+            printf '%s\n' "$(t ui.cmp.unusable)"
+            CMP_TERM=("${C_DIM}$(t ui.cmp.term_unusable)${C_RST}")
+            return 0
+        fi
+    } >"$CMP_FILE"
+
+    [[ "$PREV_VERSION" != "$UHC_VERSION" ]] && vchanged=1
+    while IFS= read -r id; do
+        [[ -n "$id" ]] || continue
+        o="${SEV_RANK[${PREV_SEV[$id]:-none}]:-0}"
+        n="${SEV_RANK[${RUN_SEV[$id]:-none}]:-0}"
+        on="${PREV_N[$id]:-0}"; nn="${RUN_N[$id]:-0}"
+        s_old="${PREV_SEV[$id]:-}"; s_new="${RUN_SEV[$id]:-}"
+        if is_ignored "$id"; then
+            (( o >= 3 )) && l_ign+=("\`${id}\`")
+            (( o > 0 )) && CARRY[$id]=1
+            continue
+        fi
+        if (( o == 0 )); then
+            if (( vchanged )) && [[ -z "${PREV_PARTIAL[$id]+x}" ]]; then
+                l_check+=("\`${id}\` ($(cmp_sev "$s_new" "$nn"))")
+            elif (( n >= 3 )); then
+                l_new+=("\`${id}\` $(cmp_sev "$s_new" "$nn")"); term_ids+=("$id")
+            else
+                minor=$((minor + 1))
+            fi
+            continue
+        fi
+        if (( n == 0 )); then
+            if [[ -n "${RUN_PARTIAL[$id]+x}" || -n "${RUN_PARTIAL[${id%%-*}-ALL]+x}" ]]; then
+                (( o >= 3 )) && l_part+=("\`${id}\`")
+                CARRY[$id]=1
+            elif (( o >= 3 )); then
+                l_resolved+=("\`${id}\` $(cmp_sev "$s_old" "$on") → $(t ui.cmp.absent)")
+            else
+                minor=$((minor + 1))
+            fi
+            continue
+        fi
+        same=""; (( n == o )) && same=1
+        item="\`${id}\` $(cmp_sev "$s_old" "$on" "$same") → $(cmp_sev "$s_new" "$nn" "$same")"
+        if (( n > o )); then
+            if (( n >= 3 )); then l_worse+=("$item"); term_ids+=("$id"); else minor=$((minor + 1)); fi
+        elif (( n < o )); then
+            if (( o < 3 )); then minor=$((minor + 1))
+            elif (( n == 1 )); then l_resolved+=("$item")
+            else l_better+=("$item"); fi
+        elif (( n >= 3 && nn > on )); then
+            l_worse+=("$item"); term_ids+=("$id")
+        elif (( n >= 3 && nn < on )); then
+            l_better+=("$item")
+        fi
+    done < <(printf '%s\n' "${!PREV_SEV[@]}" "${!RUN_SEV[@]}" | LC_ALL=C sort -u)
+
+    CMP_NEW=${#l_new[@]}; CMP_WORSE=${#l_worse[@]}; CMP_RESOLVED=${#l_resolved[@]}
+    d="${PREV_DATE:0:10} ${PREV_DATE:11:5}"
+    {
+        if [[ "$IS_ROOT" == 1 ]]; then
+            t ui.cmp.intro_root date="$d" version="$PREV_VERSION"
+        else
+            t ui.cmp.intro_user date="$d" version="$PREV_VERSION"
+        fi
+        printf '\n'
+        (( vchanged )) && printf '\n%s\n' "$(t ui.cmp.version from="$PREV_VERSION" to="$UHC_VERSION")"
+        if (( ${#l_new[@]} + ${#l_worse[@]} + ${#l_better[@]} + ${#l_resolved[@]} == 0 )); then
+            printf '\n%s\n' "$(t ui.cmp.none)"
+        fi
+        # lang-keys: ui.cmp.new ui.cmp.worse ui.cmp.better ui.cmp.resolved ui.cmp.checks ui.cmp.ignored ui.cmp.partial
+        item="$(cmp_list ui.cmp.new "${l_new[@]}"
+                cmp_list ui.cmp.worse "${l_worse[@]}"
+                cmp_list ui.cmp.better "${l_better[@]}"
+                cmp_list ui.cmp.resolved "${l_resolved[@]}"
+                cmp_list ui.cmp.checks "${l_check[@]}"
+                cmp_list ui.cmp.ignored "${l_ign[@]}"
+                cmp_list ui.cmp.partial "${l_part[@]}"
+                (( minor > 0 )) && printf -- '- %s\n' "$(t ui.cmp.minor n="$minor")")"
+        [[ -n "$item" ]] && printf '\n%s\n' "$item"
+        (( ${#l_new[@]} + ${#l_worse[@]} + ${#l_better[@]} > 0 )) && printf '\n%s\n' "$(t ui.cmp.details)"
+    } >>"$CMP_FILE"
+
+    if (( ${#l_new[@]} + ${#l_worse[@]} + ${#l_better[@]} + ${#l_resolved[@]} == 0 )); then
+        item="$(t ui.cmp.term_none date="$d")"
+    else
+        item="$(t ui.cmp.term_counts date="$d" new="$CMP_NEW" worse="$CMP_WORSE" better="${#l_better[@]}" resolved="$CMP_RESOLVED")"
+    fi
+    (( vchanged )) && item+=" $(t ui.cmp.term_version from="$PREV_VERSION" to="$UHC_VERSION" n="${#l_check[@]}")"
+    CMP_TERM=("$item")
+    if (( ${#term_ids[@]} > 0 )); then
+        item="$(printf '%s, ' "${term_ids[@]}")"
+        CMP_TERM+=("$(t ui.cmp.term_ids ids="${item%, }")")
+    fi
+}
+
+# print_compare — the comparison on the terminal: one or two lines, one with
+# --brief, none with --quiet (say).
+print_compare() {
+    (( ${#CMP_TERM[@]} > 0 )) || return 0
+    if [[ "$BRIEF" == 1 ]]; then say "${CMP_TERM[0]}"; return 0; fi
+    local line
+    for line in "${CMP_TERM[@]}"; do say "$line"; done
+}
+
+# save_state — replace the state file with the results of this run, with the
+# data owner's privileges: written to a new private file of logs/ (mktemp,
+# never an existing path), then renamed over the old one (mv -T replaces a
+# symlink instead of following it, and refuses a directory).
+save_state() {
+    local id cnt
+    {
+        printf '%s\n' "$STATE_MAGIC"
+        printf 'version\t%s\n' "$UHC_VERSION"
+        printf 'date\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')"
+        printf 'privileges\t%s\n' "$(priv_word)"
+        {
+            for id in "${!RUN_SEV[@]}"; do
+                [[ "$id" =~ ^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$ && ${#id} -le 64 ]] || continue
+                cnt="${RUN_N[$id]}"; (( cnt > 9999 )) && cnt=9999
+                printf '%s\t%s\t%d\n' "${RUN_SEV[$id]}" "$id" "$cnt"
+            done
+            # Carried over (already validated when the previous state was read).
+            for id in "${!CARRY[@]}"; do
+                [[ -z "${RUN_SEV[$id]+x}" ]] && printf '%s\t%s\t%d\n' "${PREV_SEV[$id]}" "$id" "${PREV_N[$id]}"
+            done
+        } | LC_ALL=C sort -t$'\t' -k2,2
+        for id in "${!RUN_PARTIAL[@]}"; do
+            [[ "$id" =~ ^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$ && ${#id} -le 64 ]] || continue
+            printf 'PARTIAL\t%s\t1\n' "$id"
+        done | LC_ALL=C sort
+    } | as_data_owner sh -c '
+        exec 2>/dev/null; umask 077
+        tmp="$(mktemp "$1.XXXXXX")" || exit 1
+        if cat > "$tmp" && mv -fT -- "$tmp" "$1"; then exit 0; fi
+        rm -f -- "$tmp"; exit 1' _ "$CMP_STATE_FILE" \
+        || echo "uhc: cannot write the state file $CMP_STATE_FILE (check it is a regular file you own)" >&2
+}
+
 # sanitize — mask identifying data (hostname, user name, IP and MAC addresses)
 # so the report can be shared. Loopback and wildcard addresses are kept
 # because they carry meaning (local-only vs exposed). SSH key and container
@@ -206,6 +478,7 @@ write_report() {
         if (( ${#IGNORED_FOUND[@]} > 0 )); then
             printf '\n%s\n' "$(t ui.sum.silenced ids="${IGNORED_FOUND[*]}")"
         fi
+        [[ -s "${CMP_FILE:-}" ]] && cat "$CMP_FILE"
         render_plan md
         cat "$BODY_FILE"
         if [[ -s "$PARTIAL_FILE" ]]; then
@@ -230,9 +503,11 @@ rotate_reports() {
             | while IFS= read -r f; do rm -f -- "$f"; done' _ "$REPORT_DIR" "$KEEP_REPORTS"
 }
 
-# write_log — one line per run.
+# write_log — one line per run. The comparison counters come last (fields
+# are only ever added at the end, for programs that read this line); they are
+# "-" when there was no usable previous state at this privilege level.
 write_log() {
-    log_line "$(date '+%Y-%m-%dT%H:%M:%S%z') exit=${EXIT_CODE} critical=${COUNT_CRITICAL} warning=${COUNT_WARNING} info=${COUNT_INFO} ok=${COUNT_OK} partial=${COUNT_PARTIAL} privileges=$([[ $IS_ROOT == 1 ]] && echo root || echo user) code=${CODE_FINGERPRINT} report=reports/${REPORT_FILE##*/}"
+    log_line "$(date '+%Y-%m-%dT%H:%M:%S%z') exit=${EXIT_CODE} critical=${COUNT_CRITICAL} warning=${COUNT_WARNING} info=${COUNT_INFO} ok=${COUNT_OK} partial=${COUNT_PARTIAL} privileges=$(priv_word) code=${CODE_FINGERPRINT} report=reports/${REPORT_FILE##*/} new=${CMP_NEW} worse=${CMP_WORSE} resolved=${CMP_RESOLVED}"
 }
 
 # notify — desktop notification when the result reaches NOTIFY_LEVEL.

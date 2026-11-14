@@ -1,0 +1,47 @@
+# Messages de lib/checks/85-backup.sh. Format et règles : voir lib/lang/en/common.lang.
+
+section.85-backup=Sauvegardes
+
+# ---- BAK-STATUS ----
+BAK-STATUS.none.title=Aucun outil de sauvegarde détecté
+BAK-STATUS.none.impact=Aucun outil de sauvegarde connu n'est installé, et aucune tâche planifiée ne copie de fichiers. Limite de ce contrôle : une sauvegarde vers un NAS, vers un service en ligne ou une copie manuelle sur un disque externe ne laisse aucune trace ici. Si vous n'avez rien de tout cela, une panne de disque, un vol ou une suppression par erreur font perdre vos fichiers pour de bon.
+BAK-STATUS.none.act.1=Si vous n'avez aucune sauvegarde, mettez-en une en place : Déjà Dup (l'application « Sauvegardes » d'Ubuntu) copie votre dossier personnel vers un disque externe, un dossier réseau ou un service en ligne, à intervalle régulier.
+BAK-STATUS.info.title=Outils de sauvegarde détectés : {tools}
+BAK-STATUS.info.impact=Inventaire des outils de sauvegarde et des copies planifiées trouvés ici, avec la date de la dernière sauvegarde quand elle se lit sur place. Un instantané gardé sur le même disque que le système (Timeshift, snapper) protège d'une mise à jour ratée, pas de la panne ni du vol de ce disque. Limite : une sauvegarde vers un NAS, un service en ligne ou une copie manuelle ne laisse aucune trace ici. L'audit signale une sauvegarde planifiée vieille de plus de {days} jours.
+BAK-STATUS.warn.title=Sauvegarde planifiée en retard ou en échec : {tools}
+BAK-STATUS.warn.impact=Une sauvegarde prévue à intervalle régulier n'a pas réussi depuis plus de {days} jours, ou sa dernière exécution planifiée a échoué. Les fichiers créés ou modifiés depuis la dernière bonne sauvegarde seraient perdus avec le disque.
+BAK-STATUS.warn.act.1=Ouvrez l'outil de sauvegarde, lisez sa dernière erreur et lancez une sauvegarde à la main ; vérifiez qu'elle va jusqu'au bout.
+BAK-STATUS.warn.act.2=Liste les tâches planifiées (minuteurs) avec leur dernière et leur prochaine exécution. Lecture seule.
+BAK-STATUS.warn.act.3=Affiche les derniers messages du service de sauvegarde cité dans la preuve (ajoutez --user pour un minuteur de votre session). Lecture seule.
+BAK-STATUS.warn.act.4=Pour une sauvegarde sur un disque externe ou un NAS, vérifiez que la destination est branchée et qu'il lui reste de la place.
+BAK-STATUS.warn.caution=Seule une restauration prouve qu'une sauvegarde marche : une fois le problème réglé, restaurez un fichier dans un autre dossier et ouvrez-le.
+BAK-STATUS.ev.1=Outils de sauvegarde et tâches planifiées (les fichiers de configuration ne sont pas ouverts)
+BAK-STATUS.tool.timer=minuteur de sauvegarde
+BAK-STATUS.ev.scope.system=minuteur système {unit}
+BAK-STATUS.ev.scope.user=minuteur utilisateur {unit}
+BAK-STATUS.ev.timer_on=planifié
+BAK-STATUS.ev.timer_off=minuteur inactif (non planifié)
+BAK-STATUS.ev.last_run=dernière exécution {when}
+BAK-STATUS.ev.no_run=aucune exécution connue
+BAK-STATUS.ev.failed=dernière exécution en échec ({result})
+BAK-STATUS.ev.running=en cours d'exécution
+BAK-STATUS.ev.last={date} (il y a {days} jours)
+BAK-STATUS.ev.cron=cron {label} ({when})
+BAK-STATUS.ev.prog=lance {prog}
+BAK-STATUS.ev.cron_last=dernière exécution inconnue
+BAK-STATUS.ev.ts_sched=planifié ({list})
+BAK-STATUS.ev.ts_nosched=aucune planification réglée
+BAK-STATUS.ev.ts_noconf=pas encore configuré (pas de /etc/timeshift/timeshift.json)
+BAK-STATUS.ev.samedisk=instantanés sur le disque du système
+BAK-STATUS.ev.ts_snaps={n} instantané(s), le plus récent {when}
+BAK-STATUS.ev.last_unknown=dernière sauvegarde inconnue d'ici
+BAK-STATUS.ev.dd_sched=sauvegarde automatique tous les {days} jour(s)
+BAK-STATUS.ev.dd_nosched=sauvegarde automatique désactivée
+BAK-STATUS.ev.dd_last=dernière sauvegarde réussie {when}
+BAK-STATUS.ev.never=aucune sauvegarde réussie enregistrée
+BAK-STATUS.ev.settings_unknown=réglages non lus
+BAK-STATUS.ev.sched_found=présent dans une planification ci-dessus
+BAK-STATUS.ev.sched_none=aucune planification trouvée ici
+BAK-STATUS.ev.config=configuration présente ({list})
+BAK-STATUS.ev.noconfig=aucune configuration trouvée
+BAK-STATUS.partial.dejadup=réglages de Déjà Dup (planification, dernière sauvegarde) non lus : gsettings est absent ou ne peut pas lire les réglages de l'utilisateur audité

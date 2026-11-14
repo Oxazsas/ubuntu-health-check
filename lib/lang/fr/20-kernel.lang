@@ -59,3 +59,18 @@ KRN-OLD.info.act.2=Liste les paquets devenus inutiles (souvent d'anciens noyaux)
 KRN-OLD.info.act.3=Retire ces paquets. Un noyau retiré peut être réinstallé tant qu'Ubuntu le propose encore.
 KRN-OLD.info.caution=Lisez d'abord la liste affichée par la simulation, et arrêtez-vous si elle contient le noyau en cours d'utilisation ou ubuntu-desktop. S'il reste d'anciens noyaux après cela, consultez les résultats sur le métapaquet du noyau plus haut.
 KRN-OLD.ev.1=Images de noyau installées
+
+# ---- KRN-MODULES ----
+KRN-MODULES.ok.title=Pilotes hors noyau présents pour tous les noyaux installés ({drivers})
+KRN-MODULES.warn.title=Un pilote hors noyau manque pour le noyau en service ou celui du prochain démarrage ({kernels})
+KRN-MODULES.warn.impact=Certains pilotes ne font pas partie du noyau et doivent être installés à part pour chaque noyau : pilotes graphiques (NVIDIA), certains pilotes Wi-Fi ou de caméra. Un autre noyau installé possède un pilote qui manque à celui-ci. Avec ce noyau, l'appareil concerné ne fonctionne pas, ou en mode dégradé : pour une carte graphique, un affichage lent ou un écran noir.
+KRN-MODULES.info.title=Un pilote hors noyau manque pour un ancien noyau de secours ({kernels})
+KRN-MODULES.info.impact=Certains pilotes ne font pas partie du noyau et doivent être installés à part pour chaque noyau (graphiques NVIDIA, certains pilotes Wi-Fi ou de caméra). Le noyau en service et celui démarré par défaut les ont ; un ancien noyau gardé en secours ne les a pas. Rien ne change tant que vous ne démarrez pas ce noyau ; si vous le choisissez dans le menu de démarrage, l'appareil concerné risque de ne pas fonctionner (pour une carte graphique : affichage lent ou écran noir). Ubuntu n'installe en général ces pilotes que pour le noyau le plus récent.
+KRN-MODULES.act.list=Liste les paquets de pilotes installés, avec le noyau pour lequel chacun est construit. Lecture seule.
+KRN-MODULES.act.dkms=Liste les pilotes construits sur place par DKMS, et pour quels noyaux. Lecture seule.
+KRN-MODULES.act.simulate=Montre ce que ferait l'installation du paquet de pilote manquant (son nom figure dans la preuve). Simple simulation : rien n'est installé. Le paquet n'est peut-être plus proposé pour un ancien noyau.
+KRN-MODULES.warn.act.headers=Pour un pilote DKMS, les en-têtes du noyau doivent être installés (paquet linux-headers-<kernel>) : DKMS construit alors le pilote à la prochaine installation ou mise à jour du noyau. Vérifiez avec apt-cache policy linux-headers-<kernel>.
+KRN-MODULES.warn.caution=Ne redémarrez pas sur le noyau concerné avant d'avoir installé le pilote si l'appareil est indispensable (la carte graphique d'un poste de bureau). Si l'ordinateur démarre ensuite sur un écran noir, choisissez le noyau précédent dans le menu « Options avancées pour Ubuntu » au démarrage. Avec Secure Boot, un pilote construit par DKMS doit être signé par une clé enregistrée au démarrage (MOK).
+KRN-MODULES.ev.1=Noyaux sans un pilote qu'un autre noyau possède
+KRN-MODULES.ev.pkg={kernel} : pas de paquet de pilote {driver} (présent pour {with} ; paquet attendu pour ce noyau : {package})
+KRN-MODULES.ev.dkms={kernel} : module DKMS {module} non installé (installé pour {with})

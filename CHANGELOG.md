@@ -1,5 +1,67 @@
 # Changelog
 
+## 2.11.0
+
+The audit now compares itself with the previous one, and looks at the
+hardware, the backups and the out-of-tree drivers. Every new command is
+read-only and answered locally; no daemon is started.
+
+### Since the last audit
+- New "Since the last audit" section in the report, and one or two lines on
+  the terminal: findings new, worse, improved or resolved compared with the
+  previous audit at the same privilege level. Changes between OK and INFO
+  are only counted.
+- The results are kept by ID in `logs/last-audit-user.state` or
+  `logs/last-audit-root.state` (version, date, severity, ID and count only:
+  no title and no name). The file is read as data, checked line by line and
+  set aside as a whole when anything looks wrong.
+- A check silenced by `IGNORE_CHECKS` or partial this time is never shown as
+  resolved. After an update of the tool, unknown IDs are shown as checks
+  possibly new in this version.
+- `logs/uhc.log`: `new=N worse=N resolved=N` appended at the end of each
+  line (`-` when there is nothing to compare with). Existing fields are
+  unchanged.
+
+### Hardware health
+- New module `15-hardware.sh`, IDs `HW-*`.
+- `HW-BATTERY` (INFO, WARNING below `BATTERY_HEALTH_WARN` %): wear, cycles,
+  charge thresholds, read from `/sys`. Nothing without a battery.
+- `HW-DISK-HEALTH` (OK, WARNING, CRITICAL): SMART health of the internal
+  disks. As root, `smartctl -H -A -n standby` or `nvme smart-log`; without
+  root, the data udisks2 already holds, read with `busctl --auto-start=no`
+  and only when `udisksd` already runs. Serial numbers never reach the
+  report. Skipped in virtual machines and containers.
+- `HW-KERNEL-ERRORS` (OK, INFO, WARNING): disk I/O, file system, machine
+  check and memory errors in the kernel log of the current and previous
+  boot, by precise patterns only.
+
+### Backups
+- New module `85-backup.sh`, ID `BAK-STATUS`: inventory of backup tools,
+  backup timers and cron copies, with the last known backup. WARNING only
+  when a scheduled backup is older than `BACKUP_MAX_AGE` days or its last
+  run failed. The absence of any tool is an INFO that states the limit:
+  a backup to a NAS, an online service or a manual copy leaves no trace
+  here. Configuration files of backup tools are never opened.
+
+### Kernel
+- `KRN-MODULES`: out-of-tree drivers (`linux-modules-<driver>-<kernel>`
+  packages, DKMS) missing for an installed kernel. WARNING for the running
+  or newest kernel, INFO for an older fallback kernel.
+
+### Fixed
+- `pro security-status` wrote its log to `~/.cache/ubuntu-pro/`: its log,
+  cache and temporary files now go to a private temporary folder removed
+  right after.
+
+### Configuration
+- New keys `BATTERY_HEALTH_WARN` (default 60) and `BACKUP_MAX_AGE`
+  (default 30).
+
+### Not tested
+- A real root run of the new checks (`smartctl`, `nvme`), a SATA disk, and
+  backup tools other than Timeshift were only exercised with simulated
+  outputs.
+
 ## 2.10.0
 
 A new section for virtual machines managed by libvirt, and two false

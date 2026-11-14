@@ -46,6 +46,32 @@ ui.sum.finding=Résultat
 ui.sum.none=Aucun résultat critique ni avertissement.
 ui.sum.silenced=Masqués par la configuration (IGNORE_CHECKS) : `{ids}`
 
+# ---- depuis le dernier audit (comparaison avec les résultats enregistrés du précédent) ----
+ui.cmp.title=Depuis le dernier audit
+ui.cmp.first_user=Aucun audit sans privilèges antérieur à comparer : celui-ci servira de référence pour la prochaine comparaison.
+ui.cmp.first_root=Aucun audit en root antérieur à comparer : celui-ci servira de référence pour la prochaine comparaison.
+ui.cmp.unusable=Les résultats enregistrés de l'audit précédent sont inutilisables (illisibles, abîmés ou d'un format inconnu). Cet audit devient la nouvelle référence.
+ui.cmp.intro_user=Comparaison avec l'audit sans privilèges précédent, du {date} (ubuntu-health-check {version}). Les audits lancés avec sudo sont comparés à part.
+ui.cmp.intro_root=Comparaison avec l'audit en root précédent, du {date} (ubuntu-health-check {version}). Les audits sans privilèges sont comparés à part.
+ui.cmp.version=L'outil a changé de version depuis ({from} → {to}). Les ID que l'ancienne version n'a jamais signalés sont listés comme contrôles peut-être nouveaux dans cette version, pas comme problèmes nouveaux. Un contrôle supprimé ou renommé par la mise à jour apparaîtrait comme résolu.
+ui.cmp.none=Aucun résultat nouveau, aggravé, amélioré ou résolu.
+ui.cmp.new=**Nouveaux** ({n}) : {items}
+ui.cmp.worse=**Aggravés** ({n}) : {items}
+ui.cmp.better=**Améliorés** ({n}) : {items}
+ui.cmp.resolved=**Résolus** ({n}) : {items}
+ui.cmp.checks=**Contrôles peut-être nouveaux dans cette version** ({n}) : {items}
+ui.cmp.ignored=**Non comparés, masqués par IGNORE_CHECKS** ({n}) : {items}
+ui.cmp.partial=**Non vérifiés cette fois** (contrôle partiel ; c'était un avertissement ou un résultat critique) ({n}) : {items}
+ui.cmp.minor=Changements entre OK et INFO : {n} (non listés).
+ui.cmp.absent=non signalé
+ui.cmp.details=Les résultats encore présents sont détaillés plus bas, sous leur ID.
+ui.cmp.term_first=Depuis le dernier audit : premier audit à ce niveau de privilèges.
+ui.cmp.term_unusable=Depuis le dernier audit : résultats précédents inutilisables, cet audit devient la référence.
+ui.cmp.term_none=Depuis le dernier audit ({date}) : aucun changement.
+ui.cmp.term_counts=Depuis le dernier audit ({date}) : {new} nouveau(x), {worse} aggravé(s), {better} amélioré(s), {resolved} résolu(s).
+ui.cmp.term_version=Outil mis à jour ({from} → {to}) : {n} contrôle(s) peut-être nouveau(x).
+ui.cmp.term_ids=Nouveaux ou aggravés : {ids}
+
 # ---- résultats (corps du rapport, plan d'action) ----
 ui.colon= :
 ui.impact=Conséquence

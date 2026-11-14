@@ -114,4 +114,86 @@ else
         caution KRN-OLD.info.caution
         evidence "$(t KRN-OLD.ev.1)" "$(printf '%s\n' "${kernel_images[@]}")"
     fi
+
+    # ---- out-of-tree drivers (packaged modules and DKMS) -------------------------
+    # Drivers that are not part of the kernel (NVIDIA, some Wi-Fi or camera
+    # drivers) come either as packages built for one kernel,
+    # linux-modules-<driver>-<kernel> (linux-modules-nvidia-580-open-6.8.0-45-generic),
+    # or are built locally by DKMS. A kernel lacks a driver when another
+    # installed kernel has it. Drivers are compared by family (the name up to
+    # its first number: "nvidia" for nvidia-580-open), so that a change of
+    # driver series between two kernels is not reported. The running kernel
+    # and the newest one (started by default at the next boot) matter; an
+    # older kernel is only a fallback.
+    km_kernels=()
+    for img in "${kernel_images[@]}"; do km_kernels+=("${img#linux-image-}"); done
+    declare -A km_has=() km_pkg=()   # km_has[family/kernel]=1, km_pkg[family]=one package name (pattern)
+    km_families=""
+    while read -r pkg; do
+        [[ "$pkg" =~ ^linux-modules-(.+)-([0-9]+\.[0-9]+\.[0-9]+-[0-9]+-[a-z0-9]+([-+][a-z0-9]+)*)$ ]] || continue
+        flavour="${BASH_REMATCH[1]}"; kver="${BASH_REMATCH[2]}"
+        [[ "$flavour" == extra || "$flavour" =~ ^[0-9] ]] && continue
+        fam="${flavour%%-[0-9]*}"
+        km_has[$fam/$kver]=1
+        km_pkg[$fam]="$flavour"
+        [[ " $km_families " == *" $fam "* ]] || km_families+="$fam "
+    done < <(dpkg-query -W -f='${db:Status-Status} ${Package}\n' 'linux-modules-*' 2>/dev/null | awk '$1=="installed"{print $2}')
+    declare -A km_dkms=()            # km_dkms[module/kernel]=1 when installed for that kernel
+    if have dkms; then
+        while IFS= read -r l; do
+            # "nvidia/580.95.05, 6.8.0-45-generic, x86_64: installed"
+            [[ "$l" =~ ^([^/,:[:space:]]+)/[^,]+,\ ([^,]+),\ [^:]+:\ (installed|built) ]] || continue
+            mod="dkms:${BASH_REMATCH[1]}"
+            km_has[$mod/${BASH_REMATCH[2]}]=1
+            [[ "${BASH_REMATCH[3]}" == installed ]] && km_dkms[$mod/${BASH_REMATCH[2]}]=1
+            [[ " $km_families " == *" $mod "* ]] || km_families+="$mod "
+        done < <(run dkms status)
+    fi
+    km_warn=""; km_info=""; km_lines=""; km_present=""; km_pkgs=()
+    for fam in $km_families; do
+        km_with=""; km_without=()
+        for k in "${km_kernels[@]}"; do
+            if [[ "$fam" == dkms:* ]]; then
+                [[ -n "${km_dkms[$fam/$k]:-}" ]] && km_with+="$k " || km_without+=("$k")
+            else
+                [[ -n "${km_has[$fam/$k]:-}" ]] && km_with+="$k " || km_without+=("$k")
+            fi
+        done
+        [[ -n "$km_with" ]] || continue
+        km_present+="${km_present:+, }${fam#dkms:}"
+        for k in "${km_without[@]}"; do
+            if [[ "$fam" == dkms:* ]]; then
+                km_lines+="$(t KRN-MODULES.ev.dkms kernel="$k" module="${fam#dkms:}" with="${km_with% }")"$'\n'
+            else
+                km_lines+="$(t KRN-MODULES.ev.pkg kernel="$k" driver="$fam" with="${km_with% }" package="linux-modules-${km_pkg[$fam]}-${k}")"$'\n'
+                km_pkgs+=("linux-modules-${km_pkg[$fam]}-${k}")
+            fi
+            if [[ "$k" == "$running" || "$k" == "$latest_installed" ]]; then
+                [[ " $km_warn " == *" $k "* ]] || km_warn+="$k "
+            else
+                [[ " $km_info " == *" $k "* ]] || km_info+="$k "
+            fi
+        done
+    done
+    km_warn="${km_warn% }"; km_info="${km_info% }"
+    # A single missing package is named in the proposed commands.
+    km_cmd="<package>"
+    (( ${#km_pkgs[@]} == 1 )) && km_cmd="$(safe_name "${km_pkgs[0]}" "<package>")"
+    if [[ -n "$km_warn" ]]; then
+        finding WARNING KRN-MODULES "$(t KRN-MODULES.warn.title kernels="${km_warn// /, }")"
+        impact KRN-MODULES.warn.impact
+        action "apt list --installed 'linux-modules-*'" KRN-MODULES.act.list
+        have dkms && action "dkms status" KRN-MODULES.act.dkms
+        (( ${#km_pkgs[@]} > 0 )) && action "sudo apt install --simulate ${km_cmd}" KRN-MODULES.act.simulate
+        action "" KRN-MODULES.warn.act.headers
+        caution KRN-MODULES.warn.caution
+    elif [[ -n "$km_info" ]]; then
+        finding INFO KRN-MODULES "$(t KRN-MODULES.info.title kernels="${km_info// /, }")"
+        impact KRN-MODULES.info.impact
+        action "apt list --installed 'linux-modules-*'" KRN-MODULES.act.list
+        (( ${#km_pkgs[@]} > 0 )) && action "sudo apt install --simulate ${km_cmd}" KRN-MODULES.act.simulate
+    elif [[ -n "$km_present" ]]; then
+        finding OK KRN-MODULES "$(t KRN-MODULES.ok.title drivers="$km_present")"
+    fi
+    evidence "$(t KRN-MODULES.ev.1)" "${km_lines%$'\n'}"
 fi

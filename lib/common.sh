@@ -41,6 +41,11 @@ LAST_FINDING_TITLE=""
 LAST_PLAN_FILE=""
 LAST_ACTION_COUNT=0
 
+# Results of this run by ID, for the comparison with the previous audit (see
+# compare_previous in report.sh): the highest severity an ID reached, how
+# many times it was reported at that severity, and the IDs of partial checks.
+declare -A RUN_SEV=() RUN_N=() RUN_PARTIAL=()
+
 # Messages of the current language, by key (filled by load_lang).
 declare -A T=()
 
@@ -304,6 +309,7 @@ finding() {
         OK)       icon="🟢"; color="$C_GRN"; COUNT_OK=$((COUNT_OK + 1)) ;;
         *)        icon="❔"; color="" ;;
     esac
+    run_record "$sev" "$id"
 
     {
         printf '\n### %s %s — %s `%s`\n' "$icon" "$sev" "$title" "$id"
@@ -328,6 +334,24 @@ finding() {
     [[ -n "$explanation" ]] && plan_record I "$explanation"
 
     say "  ${color}$(printf '%-8s' "$sev")${C_RST} $title ${C_DIM}[$id]${C_RST}"
+}
+
+# Order of the severities (used to compare two results of the same ID).
+declare -A SEV_RANK=([OK]=1 [INFO]=2 [WARNING]=3 [CRITICAL]=4)
+
+# run_record SEVERITY ID — keep, for each ID, its highest severity in this run
+# and the number of times it was reported at that severity (an ID such as
+# SYS-DISK is reported once per filesystem). Builtins only: no process.
+run_record() {
+    local sev="$1" id="$2" r o
+    r="${SEV_RANK[${sev:-none}]:-0}"
+    (( r > 0 )) || return 0
+    o="${SEV_RANK[${RUN_SEV[$id]:-none}]:-0}"
+    if (( r > o )); then
+        RUN_SEV[$id]="$sev"; RUN_N[$id]=1
+    elif (( r == o )); then
+        RUN_N[$id]=$(( RUN_N[$id] + 1 ))
+    fi
 }
 
 # plan_record TYPE FIELD... — append one record to the plan file of the last
@@ -429,6 +453,7 @@ evidence() {
 partial() {
     local id="$1" what="$2"
     COUNT_PARTIAL=$((COUNT_PARTIAL + 1))
+    [[ -n "$id" ]] && RUN_PARTIAL[$id]=1
     printf -- '- `%s` (%s)%s %s\n' "$id" "$CURRENT_SECTION" "$(t ui.colon)" "$what" >>"$PARTIAL_FILE"
     printf '\n> ⚪ %s%s %s `%s`\n' "$(t ui.skipped)" "$(t ui.colon)" "$what" "$id" >>"$BODY_FILE"
     say "  ${C_DIM}SKIPPED  $what [$id]${C_RST}"
