@@ -95,3 +95,13 @@ SYS-DISK-USAGE.partial.home=taille de ~/snap non mesurée
 SYS-DISK-USAGE.partial.docker=données Docker non mesurées (échec de docker system df : Docker arrêté, ou pas d'accès sans sudo)
 SYS-DISK-USAGE.partial.journal=taille des journaux du système non mesurée (il faut sudo, ou faire partie du groupe adm)
 SYS-DISK-USAGE.partial.apt=taille du cache des paquets apt non mesurée
+
+# ---- SYS-LOCAL-BIN ----
+SYS-LOCAL-BIN.info.title={n} programme(s) de /usr/local/bin ou /usr/local/sbin fourni(s) par aucun paquet
+SYS-LOCAL-BIN.info.impact=Ces programmes ont été installés à la main ou par un script d'installation, hors du gestionnaire de paquets : aucune mise à jour ne les atteint, correctifs de sécurité compris. C'est un inventaire à relire, pas une anomalie : certains ont été installés exprès et sont tenus à jour autrement.
+SYS-LOCAL-BIN.info.act.1=Liste les fichiers des deux dossiers avec leur taille, leur date et la cible des liens. Lecture seule.
+SYS-LOCAL-BIN.info.act.2=Pour chaque programme que vous ne reconnaissez pas, cherchez d'où il vient (son nom, la date, la documentation du logiciel installé ce jour-là) et s'il en existe une version plus récente. Ne retirez que ce que vous connaissez : certains paquets y installent des scripts d'aide depuis leurs propres scripts.
+SYS-LOCAL-BIN.ev.1=Programmes sans paquet (taille en octets, date de dernière modification)
+SYS-LOCAL-BIN.ev.file={path} : {size} octets, {date}
+SYS-LOCAL-BIN.ev.link={path} : lien vers {target}, {date}
+SYS-LOCAL-BIN.partial.1=programmes de /usr/local non comparés aux paquets (dpkg n'est pas disponible)

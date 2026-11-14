@@ -95,3 +95,13 @@ SYS-DISK-USAGE.partial.home=size of ~/snap not measured
 SYS-DISK-USAGE.partial.docker=Docker data not measured (docker system df failed: Docker not running, or no access without sudo)
 SYS-DISK-USAGE.partial.journal=size of the system logs not measured (needs sudo, or membership of the adm group)
 SYS-DISK-USAGE.partial.apt=size of the apt package cache not measured
+
+# ---- SYS-LOCAL-BIN ----
+SYS-LOCAL-BIN.info.title={n} program(s) in /usr/local/bin or /usr/local/sbin that no package provides
+SYS-LOCAL-BIN.info.impact=These programs were installed by hand or by an installer script, outside the package manager: no update ever reaches them, security fixes included. This is an inventory to review, not a fault: some were installed on purpose and are kept up to date in another way.
+SYS-LOCAL-BIN.info.act.1=Lists the files of both folders with their size, date and link target. Read-only.
+SYS-LOCAL-BIN.info.act.2=For each program you do not recognise, find out where it comes from (its name, the date, the documentation of the software you installed that day) and whether a newer version exists. Remove only what you know: some packages install helper scripts there from their own scripts.
+SYS-LOCAL-BIN.ev.1=Programs without a package (size in bytes, date of last change)
+SYS-LOCAL-BIN.ev.file={path}: {size} bytes, {date}
+SYS-LOCAL-BIN.ev.link={path}: link to {target}, {date}
+SYS-LOCAL-BIN.partial.1=programs of /usr/local not compared with the packages (dpkg is not available)

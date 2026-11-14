@@ -1,5 +1,75 @@
 # Changelog
 
+## 2.9.0
+
+Five new checks: expired repository keys, third-party repositories left out
+of automatic updates, sockets without a service, credential files with loose
+permissions and programs installed by hand in `/usr/local`. Every new command
+is read-only and answered locally: no new network access.
+
+### APT
+- New `APT-KEY-EXPIRED`: a repository signing key has expired (WARNING when
+  an enabled repository uses it, since apt then refuses its updates; INFO
+  when no enabled repository does) or expires within 30 days (INFO). The
+  keyrings named by `Signed-By` in the enabled entries are read, both
+  formats, including a key written inside a `.sources` file, plus
+  `/etc/apt/trusted.gpg.d` and `/etc/apt/trusted.gpg` for the entries
+  without `Signed-By`. `gpg --show-keys` runs with a home in the private
+  temporary directory and `--no-autostart`: nothing is written elsewhere and
+  no agent is started. A key counts as expired when it can no longer sign
+  (expired primary key, or all its signing subkeys expired). The evidence
+  gives the keyring, key ID, owner, date and repositories. Without `gpg`, or
+  for a keyring that cannot be read, the check is reported as partial.
+- New `APT-UNATTENDED-THIRDPARTY` (INFO), when automatic updates are
+  enabled: the enabled third-party repositories whose origin (`apt-cache
+  policy`) matches no `Allowed-Origins` or `Origins-Pattern` entry, with the
+  number of pending updates from each. Patterns are compared as
+  unattended-upgrades does (wildcards, `${distro_id}`,
+  `${distro_codename}`); an entry this check does not reproduce makes the
+  coverage "not determined" rather than guessed. The consequence says this
+  is Ubuntu's default; the actions give both choices (update by hand, or add
+  an origin) and the precaution warns that an automatic third-party update
+  can break software without warning.
+
+### Services
+- New `SVC-SOCKET-ORPHAN` (WARNING): an active socket unit whose service no
+  longer exists (`LoadState=not-found`), typically after a package was
+  removed. For a socket with `Accept=yes`, the template service
+  (`<name>@.service`) is looked up. Also for the user's own sockets when the
+  audit runs without sudo, like `SVC-USER-FAILED`. Other `not-found` units
+  are not reported.
+
+### Security
+- New `SEC-SECRET-PERMS` (WARNING): files that usually hold credentials
+  (`~/.netrc`, `~/.git-credentials`, `~/.aws/credentials`,
+  `~/.docker/config.json`, `~/.kube/config`, `~/.config/gh/hosts.yml`,
+  Claude Code and FileZilla files...) readable or writable by the group or
+  others, or not owned by the audited user. Only `stat` is used, as the
+  audited user: the files are never opened. INFO instead of WARNING when no
+  other account can reach them (home folder closed to others, and a group
+  without another member). The evidence gives the
+  `~/...` paths, modes and the home folder's mode.
+
+### System
+- New `SYS-LOCAL-BIN` (INFO): inventory of the executables and links of
+  `/usr/local/bin` and `/usr/local/sbin` (not their subfolders) that no
+  package owns, found with a single `dpkg -S` call: name, size, date and
+  link target, never their contents.
+
+### Fixes
+- The simulation behind `APT-PHASED` (`apt-get -s upgrade`) made apt try to
+  write its planner log, `/var/log/apt/eipp.log.xz`, which succeeded when
+  run as root. apt is now told not to write that log.
+
+### Considered and left out
+- A network test to the Snap Store: the tool adds no network access.
+- A list of end-of-life Docker runtimes: such a list must be maintained and
+  is soon out of date.
+- Detecting services "not in use": the tool cannot know how a service is
+  used; `SVC-NETWORK` gives the inventory for the user to decide.
+- Freshness of each snap: a snap without a new version would be reported by
+  mistake; `SNAP-REFRESH` covers refreshes that stopped.
+
 ## 2.8.0
 
 Three new snap checks and a breakdown of what can be freed when a disk fills

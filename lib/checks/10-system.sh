@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # -----------------------------------------------------------------------------
 # 10-system.sh — operating system, support lifetime, pending reboot, clock,
-# disk space.
+# disk space, programs installed by hand in /usr/local.
 #
 # Texts: lib/lang/*/10-system.lang (keys SYS-*, section.10-system).
 # -----------------------------------------------------------------------------
@@ -314,4 +314,40 @@ if (( disk_issue == 1 )) && ! is_ignored SYS-DISK-USAGE; then
     fi
     evidence "$(t SYS-DISK-USAGE.ev.1)" "${du_lines%$'\n'}"
     for p in "${du_partials[@]}"; do partial SYS-DISK-USAGE "$p"; done
+fi
+
+# ---- programs installed by hand in /usr/local -----------------------------------
+# Executable files and links directly in /usr/local/bin and /usr/local/sbin
+# that no package owns: nothing updates them. An inventory to review, without
+# judgement. Only names, sizes, dates and link targets are read, never the
+# contents. A single 'dpkg -S' call covers all the files.
+mapfile -t lb_lines < <(find /usr/local/bin /usr/local/sbin -mindepth 1 -maxdepth 1 \
+    \( -type f -perm /111 -o -type l \) -printf '%p\t%s\t%TY-%Tm-%Td\t%l\n' 2>/dev/null | sort | head -n 200)
+if (( ${#lb_lines[@]} > 0 )); then
+    if ! have dpkg; then
+        partial SYS-LOCAL-BIN "$(t SYS-LOCAL-BIN.partial.1)"
+    else
+        lb_paths=(); for l in "${lb_lines[@]}"; do lb_paths+=("${l%%$'\t'*}"); done
+        # dpkg -S prints "package(s): path" for the files it knows (and
+        # "diversion by ..." lines, skipped); unknown files go to stderr.
+        lb_owned="$(dpkg -S -- "${lb_paths[@]}" 2>/dev/null | grep -v '^diversion ' | sed -n 's/^[^:]*: //p')"
+        lb_list=""; lb_n=0
+        for l in "${lb_lines[@]}"; do
+            IFS=$'\t' read -r lb_path lb_size lb_date lb_target <<<"$l"
+            grep -qxF -- "$lb_path" <<<"$lb_owned" && continue
+            lb_n=$((lb_n + 1))
+            if [[ -n "$lb_target" ]]; then
+                lb_list+="$(t SYS-LOCAL-BIN.ev.link path="$lb_path" date="$lb_date" target="$lb_target")"$'\n'
+            else
+                lb_list+="$(t SYS-LOCAL-BIN.ev.file path="$lb_path" size="$lb_size" date="$lb_date")"$'\n'
+            fi
+        done
+        if (( lb_n > 0 )); then
+            finding INFO SYS-LOCAL-BIN "$(t SYS-LOCAL-BIN.info.title n="$lb_n")"
+            impact SYS-LOCAL-BIN.info.impact
+            action "ls -l /usr/local/bin /usr/local/sbin" SYS-LOCAL-BIN.info.act.1
+            action "" SYS-LOCAL-BIN.info.act.2
+            evidence "$(t SYS-LOCAL-BIN.ev.1)" "${lb_list%$'\n'}"
+        fi
+    fi
 fi

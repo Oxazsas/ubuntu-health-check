@@ -124,6 +124,29 @@ APT-LEGACY-KEYS.info.act.1=Lists the keys in the file, with their owner and fing
 APT-LEGACY-KEYS.info.act.2=For each vendor, follow its current installation instructions, which store its key in a separate file. Then remove the old key from the global keyring.
 APT-LEGACY-KEYS.info.caution=Before trusting a key again, check that its fingerprint matches the one published on the vendor's website. Removing a key that a repository still needs makes 'apt update' fail for that repository.
 
+# ---- APT-KEY-EXPIRED ----
+APT-KEY-EXPIRED.warn.title={n} expired signing key(s) still used by enabled repositories
+APT-KEY-EXPIRED.warn.impact=Each repository signs its packages with a key, and apt checks the signature. Once the key has expired, apt refuses the new package lists of that repository: its software is no longer updated, security fixes included, and 'sudo apt update' shows an error for it (EXPKEYSIG or "expired").
+APT-KEY-EXPIRED.warn.act.1=Lists the keys of the keyring with their owner and expiry date ("expired"). Read-only.
+APT-KEY-EXPIRED.warn.act.2=Lists the repositories in use and their origin, to find which software comes from the repository listed below. Read-only.
+APT-KEY-EXPIRED.warn.act.3=If you still use this software, get the new key from the vendor's website and follow its current installation instructions: they replace the keyring file named below. Vendors often publish the renewed key before or just after the old one expires.
+APT-KEY-EXPIRED.warn.act.4=If you no longer use this software, disable its repository instead: in its file in /etc/apt/sources.list.d, add 'Enabled: no' (.sources file) or put '#' at the start of the line (.list file). Can be undone by removing that change.
+APT-KEY-EXPIRED.warn.caution=Before trusting a new key, check that its fingerprint matches the one published on the vendor's website. Do not download a key from a link found elsewhere: a key decides which packages your computer accepts with full administrator rights.
+APT-KEY-EXPIRED.ev.1=Expired keys and the repositories that use them
+APT-KEY-EXPIRED.ev.expired={ring}: key {id} ({uid}) expired on {date}; used by: {repos}
+APT-KEY-EXPIRED.ev.unused={ring}: key {id} ({uid}) expired on {date}; used by no enabled repository
+APT-KEY-EXPIRED.ev.soon={ring}: key {id} ({uid}) expires on {date}; used by: {repos}
+APT-KEY-EXPIRED.ev.none=no enabled repository
+APT-KEY-EXPIRED.ev.inline=key written in {file}
+APT-KEY-EXPIRED.info.title={n} repository signing key(s) expiring within 30 days, or expired but unused
+APT-KEY-EXPIRED.info.impact=A key that expires within 30 days still works today: once it has expired, apt will refuse the updates of the repositories that use it. An expired key that no enabled repository uses has no effect on updates.
+APT-KEY-EXPIRED.info.act.1=For a key that expires soon, check on the vendor's website whether a renewed key is published, and install it by following the vendor's instructions. Often the vendor extends the key and its package updates the keyring itself: nothing to do.
+APT-KEY-EXPIRED.info.act.2=An expired key that no repository uses can stay: it is harmless. If you remove its file, keep a copy outside /etc/apt.
+APT-KEY-EXPIRED.ev.2=Keys concerned
+APT-KEY-EXPIRED.ok.title=No expired or soon expiring repository signing key ({n} keyring(s) read)
+APT-KEY-EXPIRED.partial.1=repository signing keys not checked (gpg is not installed)
+APT-KEY-EXPIRED.partial.2=keyring(s) not readable, their keys were not checked: {rings}
+
 # ---- APT-UNATTENDED ----
 APT-UNATTENDED.ok.title=Automatic security updates enabled
 APT-UNATTENDED.off.title=unattended-upgrades is installed but disabled
@@ -134,6 +157,23 @@ APT-UNATTENDED.missing.title=unattended-upgrades is not installed
 APT-UNATTENDED.missing.impact=No program installs security updates automatically. They only arrive when someone installs them by hand, so the computer can stay exposed for weeks.
 APT-UNATTENDED.missing.act.1=Shows whether unattended-upgrades is offered by your repositories. Read-only.
 APT-UNATTENDED.missing.act.2=Installs unattended-upgrades, which then installs security updates every day. Can be undone by removing it.
+
+# ---- APT-UNATTENDED-THIRDPARTY ----
+APT-UNATTENDED-THIRDPARTY.info.title={n} third-party repository(ies) left out of automatic updates
+APT-UNATTENDED-THIRDPARTY.mixed.title={n} third-party repository(ies) left out of automatic updates, {u} not determined
+APT-UNATTENDED-THIRDPARTY.undet.title=Coverage by automatic updates not determined for {u} third-party repository(ies)
+APT-UNATTENDED-THIRDPARTY.info.impact=Automatic updates (unattended-upgrades) only install packages from the origins allowed in their settings: by default, Ubuntu's own. This is Ubuntu's normal behaviour, not a fault. The packages of the repositories below are only updated when someone runs 'sudo apt upgrade' by hand, so their security fixes wait until then. "Not determined" means that the settings use a form this audit does not reproduce: check by hand. You decide which way suits you.
+APT-UNATTENDED-THIRDPARTY.info.act.1=Shows the settings of automatic updates, including the allowed origins (Allowed-Origins, Origins-Pattern). Read-only.
+APT-UNATTENDED-THIRDPARTY.info.act.2=Lists the pending updates, each with the name of the suite it comes from (often "stable" for a third-party repository). Read-only.
+APT-UNATTENDED-THIRDPARTY.info.act.3=First choice: install the updates by hand regularly, for example once a week. apt shows the list and asks before installing anything.
+APT-UNATTENDED-THIRDPARTY.info.act.4=Second choice: let automatic updates include a repository. Create a file in /etc/apt/apt.conf.d/ (for example 51unattended-upgrades-local, with 'sudo nano') containing: Unattended-Upgrade::Origins-Pattern { "origin=<origin>,codename=<codename>"; }; with the o= and n= values of that repository shown below. Can be undone by deleting the file.
+APT-UNATTENDED-THIRDPARTY.info.act.5=Runs the automatic updates in test mode and explains, for each package, whether its origin is allowed: check that the repository is now taken into account. Packages are downloaded but nothing is installed.
+APT-UNATTENDED-THIRDPARTY.info.caution=A third-party update installed automatically can break a program without warning, at a time you did not choose, and nobody reviews it beforehand. Only add the repositories of vendors you trust and whose software you can do without for a day.
+APT-UNATTENDED-THIRDPARTY.ev.1=Third-party repositories (origin as published by the repository)
+APT-UNATTENDED-THIRDPARTY.ev.none={repo}: not covered ({release}); pending updates: {n}
+APT-UNATTENDED-THIRDPARTY.ev.undet={repo}: coverage not determined ({release}); pending updates: {n}
+APT-UNATTENDED-THIRDPARTY.ok.title=Automatic updates cover the {n} third-party repository(ies)
+APT-UNATTENDED-THIRDPARTY.partial.1=coverage of third-party repositories by automatic updates not checked (apt-cache policy failed)
 
 # ---- APT-UNATTENDED-LASTRUN ----
 APT-UNATTENDED-LASTRUN.warn.title=Last unattended-upgrades run was {days} days ago ({date})

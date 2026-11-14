@@ -123,3 +123,18 @@ SEC-HOME-PERMS.warn.impact=Other accounts and services on this computer can brow
 SEC-HOME-PERMS.warn.act.1=Shows the permissions of your home folder. Read-only.
 SEC-HOME-PERMS.warn.act.2=Closes your home folder to other accounts (Ubuntu's default). Run it in your own session, without sudo. Can be undone with 'chmod {mode} ~'.
 SEC-HOME-PERMS.warn.caution=If a service must read files in your home folder (a web server publishing ~/public_html, a shared folder), it will no longer be able to: check it after the change.
+
+# ---- SEC-SECRET-PERMS ----
+SEC-SECRET-PERMS.warn.title={n} credential file(s) readable or writable by other accounts
+SEC-SECRET-PERMS.warn.impact=Programs such as git, the AWS, Docker or GitHub tools, FileZilla or Claude Code store passwords, access tokens or settings in these files. Their permissions let your group or every account read or change them, and your home folder (mode {mode}) does not fully block the way: another account or a compromised service could copy your access or change these settings. The files were not opened by this audit.
+SEC-SECRET-PERMS.info.title={n} credential file(s) with loose permissions, out of reach of other accounts
+SEC-SECRET-PERMS.info.impact=Programs such as git, the AWS, Docker or GitHub tools, FileZilla or Claude Code store passwords, access tokens or settings in these files. Their permissions are wider than needed, but no other account can reach them today: your home folder (mode {mode}) does not let other accounts in, and your group has no other member. They would be exposed if the home folder were opened further or if an account joined your group. The files were not opened by this audit.
+SEC-SECRET-PERMS.warn.act.1=Shows the permissions and owner of the file. Read-only.
+SEC-SECRET-PERMS.warn.act.2=Makes the file readable and writable by you only. The program that uses it keeps working: it runs with your account. Can be undone with chmod followed by the former mode (shown below).
+SEC-SECRET-PERMS.warn.caution=If a file belongs to another account (shown below), chmod must be run by that account or with sudo; first find out why it is not yours. If a token may already have been copied, chmod does not undo it: renew the token on the site that issued it.
+SEC-SECRET-PERMS.ev.1=Files concerned (mode)
+SEC-SECRET-PERMS.ev.mode={file}: mode {mode}
+SEC-SECRET-PERMS.ev.owner={file}: mode {mode}, owner {owner}
+SEC-SECRET-PERMS.ev.home=~ (home folder): mode {mode}
+SEC-SECRET-PERMS.ok.title={n} credential file(s) found, all private
+SEC-SECRET-PERMS.partial.1=permissions not read for: {files}

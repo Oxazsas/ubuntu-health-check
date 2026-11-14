@@ -267,3 +267,80 @@ if [[ -d "$TARGET_HOME" ]]; then
         caution SEC-HOME-PERMS.warn.caution
     fi
 fi
+
+# ---- permissions of files that usually hold credentials --------------------------
+# A fixed list of files, relative to the audited user's home, where common
+# tools store passwords or access tokens. Only their mode and owner are read
+# (stat, as the audited user): the files are never opened. The paths are
+# written as ~/... in the report and in the commands.
+# A loose mode is a WARNING only when another account can really reach the
+# file: it belongs to someone else, or the home lets "others" in and the file
+# is open to them, or the home lets the group in, the file is open to its
+# group and that group has another member. Otherwise (closed home, or the
+# usual private group of the user) it is an INFO.
+secret_files=(
+    .netrc .git-credentials .npmrc .pypirc .pgpass .my.cnf
+    .aws/credentials .docker/config.json .kube/config
+    .config/gh/hosts.yml .config/rclone/rclone.conf
+    .config/filezilla/sitemanager.xml .config/filezilla/recentservers.xml
+    .claude.json .claude/settings.json
+)
+if [[ -d "$TARGET_HOME" ]]; then
+    home_mode="$(stat -c '%a' -- "$TARGET_HOME" 2>/dev/null)"
+    sp_bad=(); sp_list=""; sp_n=0; sp_unread=""; sp_exposed=0
+    [[ "$home_mode" =~ ^[0-7]+$ ]] || home_mode=""
+    # sp_group_shared GROUP — true if GROUP has a member other than the user.
+    sp_group_shared() {
+        local line gid
+        line="$(getent group "$1" 2>/dev/null)" || return 0   # unknown: assume shared
+        gid="$(cut -d: -f3 <<<"$line")"
+        { cut -d: -f4 <<<"$line" | tr ',' '\n'; getent passwd | awk -F: -v g="$gid" '$4 == g {print $1}'; } \
+            | grep -v -x -F -e "$TARGET_USER" -e '' | grep -q .
+    }
+    sp_tilde='~'   # paths are written ~/... (never the home path)
+    for rel in "${secret_files[@]}"; do
+        f="${TARGET_HOME}/${rel}"
+        [[ -e "$f" || -L "$f" ]] || continue
+        # -L: for a symbolic link, the mode and owner of the file it points to.
+        if ! read -r sp_mode sp_owner sp_group < <(as_target stat -L -c '%a %U %G' -- "$f" 2>/dev/null) || [[ ! "$sp_mode" =~ ^[0-7]+$ ]]; then
+            sp_unread+="${sp_tilde}/${rel} "
+            continue
+        fi
+        sp_n=$((sp_n + 1))
+        if (( (8#$sp_mode & 8#066) != 0 )) || [[ "$sp_owner" != "$TARGET_USER" ]]; then
+            sp_bad+=("$rel")
+            if [[ "$sp_owner" != "$TARGET_USER" || -z "$home_mode" ]]; then
+                sp_exposed=1
+            elif (( (8#$sp_mode & 8#006) != 0 && (8#$home_mode & 8#001) != 0 )); then
+                sp_exposed=1
+            elif (( (8#$sp_mode & 8#060) != 0 && (8#$home_mode & 8#010) != 0 )) && sp_group_shared "$sp_group"; then
+                sp_exposed=1
+            fi
+            if [[ "$sp_owner" != "$TARGET_USER" ]]; then
+                sp_list+="$(t SEC-SECRET-PERMS.ev.owner file="${sp_tilde}/${rel}" mode="$sp_mode" owner="$sp_owner")"$'\n'
+            else
+                sp_list+="$(t SEC-SECRET-PERMS.ev.mode file="${sp_tilde}/${rel}" mode="$sp_mode")"$'\n'
+            fi
+        fi
+    done
+    if (( ${#sp_bad[@]} > 0 )); then
+        sp_list+="$(t SEC-SECRET-PERMS.ev.home mode="${home_mode:-?}")"
+        # A single file is named in the commands; several stay generic.
+        sp_cmd="${sp_tilde}/<file>"
+        (( ${#sp_bad[@]} == 1 )) && sp_cmd="${sp_tilde}/${sp_bad[0]}"
+        if (( sp_exposed == 0 )); then
+            finding INFO SEC-SECRET-PERMS "$(t SEC-SECRET-PERMS.info.title n="${#sp_bad[@]}")"
+            impact SEC-SECRET-PERMS.info.impact mode="${home_mode:-?}"
+        else
+            finding WARNING SEC-SECRET-PERMS "$(t SEC-SECRET-PERMS.warn.title n="${#sp_bad[@]}")"
+            impact SEC-SECRET-PERMS.warn.impact mode="${home_mode:-?}"
+        fi
+        action "ls -l ${sp_cmd}" SEC-SECRET-PERMS.warn.act.1
+        action "chmod 600 ${sp_cmd}" SEC-SECRET-PERMS.warn.act.2
+        caution SEC-SECRET-PERMS.warn.caution
+        evidence "$(t SEC-SECRET-PERMS.ev.1)" "$sp_list"
+    elif (( sp_n > 0 )); then
+        finding OK SEC-SECRET-PERMS "$(t SEC-SECRET-PERMS.ok.title n="$sp_n")"
+    fi
+    [[ -n "$sp_unread" ]] && partial SEC-SECRET-PERMS "$(t SEC-SECRET-PERMS.partial.1 files="${sp_unread% }")"
+fi

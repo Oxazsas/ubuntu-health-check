@@ -6,7 +6,7 @@
 # audited in 55-persistence.sh.
 #
 # Texts: lib/lang/*/50-services.lang (keys SVC-ALL, SVC-FAILED,
-# SVC-USER-FAILED, SVC-NETWORK, section.50-services).
+# SVC-USER-FAILED, SVC-SOCKET-ORPHAN, SVC-NETWORK, section.50-services).
 # -----------------------------------------------------------------------------
 
 section "$(t section.50-services)"
@@ -52,6 +52,89 @@ else
             action "" SVC-USER-FAILED.warn.act.3
             evidence "$(t SVC-USER-FAILED.ev.1)" "$user_failed"
         fi
+    fi
+
+    # ---- active sockets whose service no longer exists ------------------------------
+    # socket_orphans [--user] — one line "socket -> service" per active socket
+    # whose service is not found (LoadState=not-found), typically left behind
+    # when a package is removed. A socket with Accept=yes starts one copy of a
+    # template service, <name>@.service, per connection: that template is
+    # looked up instead. Returns 1 when systemctl fails.
+    socket_orphans() {
+        local socks props missing="" sock trig acc s
+        local -a sock_list unit_list tpl_list
+        local -A load=() tpl_found=()
+        socks="$(run systemctl "$@" list-units --type=socket --state=active --no-legend --plain)" || return 1
+        mapfile -t sock_list < <(awk '$1 ~ /\.socket$/ {print $1}' <<<"$socks")
+        (( ${#sock_list[@]} > 0 )) || return 0
+        # One call for all the sockets, one for all their services.
+        props="$(run systemctl "$@" show -p Id,Triggers,Accept -- "${sock_list[@]}" \
+                 | awk 'BEGIN { RS = ""; FS = "\n" }
+                        { id = ""; tr = ""; acc = ""
+                          for (i = 1; i <= NF; i++) {
+                              if ($i ~ /^Id=/) id = substr($i, 4)
+                              else if ($i ~ /^Triggers=/) tr = substr($i, 10)
+                              else if ($i ~ /^Accept=/) acc = substr($i, 8)
+                          }
+                          if (id != "") print id "|" tr "|" acc }')" || return 1
+        mapfile -t unit_list < <(cut -d'|' -f2 <<<"$props" | tr ' ' '\n' | grep -E '\.service$' | sort -u)
+        if (( ${#unit_list[@]} > 0 )); then
+            while IFS=$'\t' read -r s state; do
+                [[ -n "$s" ]] && load[$s]="$state"
+            done < <(run systemctl "$@" show -p Id,LoadState -- "${unit_list[@]}" \
+                     | awk 'BEGIN { RS = ""; FS = "\n" }
+                            { id = ""; st = ""
+                              for (i = 1; i <= NF; i++) {
+                                  if ($i ~ /^Id=/) id = substr($i, 4)
+                                  else if ($i ~ /^LoadState=/) st = substr($i, 11)
+                              }
+                              if (id != "") print id "\t" st }')
+        fi
+        mapfile -t tpl_list < <(awk -F'|' '$2 == "" && $3 == "yes" {sub(/\.socket$/, "@.service", $1); print $1}' <<<"$props")
+        if (( ${#tpl_list[@]} > 0 )); then
+            while read -r s _; do
+                [[ -n "$s" ]] && tpl_found[$s]=1
+            done < <(run systemctl "$@" list-unit-files --no-legend --plain -- "${tpl_list[@]}")
+        fi
+        while IFS='|' read -r sock trig acc; do
+            [[ -n "$sock" ]] || continue
+            if [[ -z "$trig" && "$acc" == yes ]]; then
+                s="${sock%.socket}@.service"
+                [[ -n "${tpl_found[$s]:-}" ]] || missing+="${sock} -> ${s} (not-found)"$'\n'
+                continue
+            fi
+            for s in $trig; do
+                [[ "${load[$s]:-}" == not-found ]] && missing+="${sock} -> ${s} (not-found)"$'\n'
+            done
+        done <<<"$props"
+        printf '%s' "$missing"
+    }
+
+    if ! orphans="$(socket_orphans)"; then
+        partial SVC-SOCKET-ORPHAN "$(t SVC-SOCKET-ORPHAN.partial.1)"
+    elif [[ -n "$orphans" ]]; then
+        sock_name="$(svc_cmd_name "${orphans%$'\n'}" "<socket>")"
+        finding WARNING SVC-SOCKET-ORPHAN "$(t SVC-SOCKET-ORPHAN.warn.title n="$(grep -c . <<<"$orphans")")"
+        impact SVC-SOCKET-ORPHAN.warn.impact
+        action "systemctl status ${sock_name}" SVC-SOCKET-ORPHAN.warn.act.1
+        action "systemctl cat ${sock_name}" SVC-SOCKET-ORPHAN.warn.act.2
+        action "sudo systemctl disable --now ${sock_name}" SVC-SOCKET-ORPHAN.warn.act.3
+        caution SVC-SOCKET-ORPHAN.warn.caution
+        evidence "$(t SVC-SOCKET-ORPHAN.ev.1)" "${orphans%$'\n'}"
+    else
+        finding OK SVC-SOCKET-ORPHAN "$(t SVC-SOCKET-ORPHAN.ok.title)"
+    fi
+    # The audited user's own sockets, like SVC-USER-FAILED (only when the
+    # audit runs as that user; a missing session manager is not an error).
+    if [[ "$IS_ROOT" == 0 ]] && user_orphans="$(socket_orphans --user)" && [[ -n "$user_orphans" ]]; then
+        sock_name="$(svc_cmd_name "${user_orphans%$'\n'}" "<socket>")"
+        finding WARNING SVC-SOCKET-ORPHAN "$(t SVC-SOCKET-ORPHAN.user.title n="$(grep -c . <<<"$user_orphans")")"
+        impact SVC-SOCKET-ORPHAN.user.impact
+        action "systemctl --user status ${sock_name}" SVC-SOCKET-ORPHAN.warn.act.1
+        action "systemctl --user cat ${sock_name}" SVC-SOCKET-ORPHAN.warn.act.2
+        action "systemctl --user disable --now ${sock_name}" SVC-SOCKET-ORPHAN.user.act.3
+        caution SVC-SOCKET-ORPHAN.warn.caution
+        evidence "$(t SVC-SOCKET-ORPHAN.ev.2)" "${user_orphans%$'\n'}"
     fi
 
     # ---- network-facing services enabled at boot --------------------------------------

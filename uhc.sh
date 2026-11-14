@@ -27,7 +27,7 @@
 
 set -uo pipefail
 
-UHC_VERSION="2.8.0"
+UHC_VERSION="2.9.0"
 
 # Public repository used by the root installation wizard (preferred source:
 # the code goes straight from the repository to a root-owned folder). Set it in

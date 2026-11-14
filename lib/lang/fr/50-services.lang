@@ -24,6 +24,21 @@ SVC-USER-FAILED.warn.act.2=Affiche tous les messages de l'unité depuis le déma
 SVC-USER-FAILED.warn.act.3=Une fois la cause corrigée, l'unité sort de cette liste dès qu'elle démarre correctement (au plus tard à votre prochaine connexion).
 SVC-USER-FAILED.ev.1=Unités utilisateur en échec
 
+# ---- SVC-SOCKET-ORPHAN ----
+SVC-SOCKET-ORPHAN.warn.title={n} socket(s) actif(s) dont le service n'existe plus
+SVC-SOCKET-ORPHAN.warn.impact=Une unité socket attend les connexions à la place d'un service et lance ce service à l'arrivée de la première connexion. Ici, le socket écoute toujours, mais son service n'existe plus, en général parce que le paquet qui le fournissait a été retiré. Chaque programme qui s'y connecte reçoit une erreur, et le socket reste ouvert pour rien.
+SVC-SOCKET-ORPHAN.warn.act.1=Indique ce qu'est le socket, son état, où il écoute et ses derniers messages. Lecture seule.
+SVC-SOCKET-ORPHAN.warn.act.2=Affiche le fichier de réglages du socket et son emplacement, qui indique souvent à quel logiciel il appartenait. Lecture seule.
+SVC-SOCKET-ORPHAN.warn.act.3=Ferme le socket tout de suite et ne l'ouvre plus au démarrage. Réversible : 'sudo systemctl enable --now' suivi du même nom le rouvre.
+SVC-SOCKET-ORPHAN.warn.caution=Si vous venez de retirer le logiciel ou que vous le réinstallez, la réinstallation ramène le service et règle le problème d'elle-même. Vérifiez avec 'dpkg -S' suivi du fichier affiché par 'systemctl cat' si un paquet fournit encore le socket.
+SVC-SOCKET-ORPHAN.ev.1=Sockets actifs et service manquant
+SVC-SOCKET-ORPHAN.ok.title=Chaque socket actif a son service
+SVC-SOCKET-ORPHAN.partial.1=sockets actifs non vérifiés (échec de systemctl)
+SVC-SOCKET-ORPHAN.user.title={n} socket(s) utilisateur actif(s) dont le service n'existe plus
+SVC-SOCKET-ORPHAN.user.impact=Une unité socket attend les connexions à la place d'un service et lance ce service à l'arrivée de la première connexion. Celui-ci appartient à votre session : il écoute toujours, mais son service n'existe plus, en général parce que le logiciel qui le fournissait a été retiré. Chaque programme qui s'y connecte reçoit une erreur.
+SVC-SOCKET-ORPHAN.user.act.3=Ferme le socket tout de suite et ne l'ouvre plus à la connexion. Réversible : 'systemctl --user enable --now' suivi du même nom le rouvre.
+SVC-SOCKET-ORPHAN.ev.2=Sockets utilisateur actifs et service manquant
+
 # ---- SVC-NETWORK ----
 SVC-NETWORK.info.title={n} service(s) réseau activé(s) au démarrage — vérifiez que chacun sert encore
 SVC-NETWORK.info.impact=Chacun de ces services démarre avec l'ordinateur et peut accepter des connexions venant d'autres machines. Un service lancé une fois pour un essai puis oublié peut rester ouvert pendant des années, et chaque service ouvert est une porte d'entrée s'il a une faille.

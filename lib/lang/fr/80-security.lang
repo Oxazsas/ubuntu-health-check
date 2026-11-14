@@ -124,3 +124,18 @@ SEC-HOME-PERMS.warn.impact=Les autres comptes et services de cet ordinateur peuv
 SEC-HOME-PERMS.warn.act.1=Affiche les permissions de votre dossier personnel. Lecture seule.
 SEC-HOME-PERMS.warn.act.2=Ferme votre dossier personnel aux autres comptes (réglage par défaut d'Ubuntu). À lancer dans votre propre session, sans sudo. Réversible avec 'chmod {mode} ~'.
 SEC-HOME-PERMS.warn.caution=Si un service doit lire des fichiers de votre dossier personnel (serveur web qui publie ~/public_html, dossier partagé), il ne le pourra plus : vérifiez-le après le changement.
+
+# ---- SEC-SECRET-PERMS ----
+SEC-SECRET-PERMS.warn.title={n} fichier(s) d'identifiants lisible(s) ou modifiable(s) par d'autres comptes
+SEC-SECRET-PERMS.warn.impact=Des programmes comme git, les outils d'AWS, de Docker ou de GitHub, FileZilla ou Claude Code rangent des mots de passe, des jetons d'accès ou des réglages dans ces fichiers. Leurs permissions laissent votre groupe ou tous les comptes les lire ou les modifier, et votre dossier personnel (mode {mode}) ne bloque pas entièrement le passage : un autre compte ou un service compromis pourrait copier vos accès ou changer ces réglages. Cet audit n'a pas ouvert les fichiers.
+SEC-SECRET-PERMS.info.title={n} fichier(s) d'identifiants aux permissions trop larges, hors de portée des autres comptes
+SEC-SECRET-PERMS.info.impact=Des programmes comme git, les outils d'AWS, de Docker ou de GitHub, FileZilla ou Claude Code rangent des mots de passe, des jetons d'accès ou des réglages dans ces fichiers. Leurs permissions sont plus larges que nécessaire, mais aucun autre compte ne peut les atteindre aujourd'hui : votre dossier personnel (mode {mode}) ne laisse pas passer les autres comptes, et votre groupe n'a pas d'autre membre. Ils seraient exposés si le dossier personnel était ouvert davantage ou si un compte rejoignait votre groupe. Cet audit n'a pas ouvert les fichiers.
+SEC-SECRET-PERMS.warn.act.1=Affiche les permissions et le propriétaire du fichier. Lecture seule.
+SEC-SECRET-PERMS.warn.act.2=Rend le fichier lisible et modifiable par vous seul. Le programme qui l'utilise continue de fonctionner : il tourne avec votre compte. Réversible avec chmod suivi de l'ancien mode (indiqué ci-dessous).
+SEC-SECRET-PERMS.warn.caution=Si un fichier appartient à un autre compte (indiqué ci-dessous), chmod doit être lancé par ce compte ou avec sudo ; cherchez d'abord pourquoi il n'est pas à vous. Si un jeton a pu être copié, chmod n'y change rien : renouvelez-le sur le site qui l'a délivré.
+SEC-SECRET-PERMS.ev.1=Fichiers concernés (mode)
+SEC-SECRET-PERMS.ev.mode={file} : mode {mode}
+SEC-SECRET-PERMS.ev.owner={file} : mode {mode}, propriétaire {owner}
+SEC-SECRET-PERMS.ev.home=~ (dossier personnel) : mode {mode}
+SEC-SECRET-PERMS.ok.title={n} fichier(s) d'identifiants trouvé(s), tous privés
+SEC-SECRET-PERMS.partial.1=permissions non lues pour : {files}

@@ -314,6 +314,7 @@ message.
 | `SYS-TIME`       | Clock synchronised with NTP                                                                                                                            |
 | `SYS-DISK`       | Usage of `/`, `/boot`, `/boot/efi`, `/var`, `/home`, Docker data                                                                                       |
 | `SYS-DISK-USAGE` | Only when a filesystem is above `DISK_WARN`: measured size of what can be freed (disabled snap revisions, `~/snap`, Docker, older kernels, journal, apt cache), largest first; the matching commands are proposed under `SYS-DISK` |
+| `SYS-LOCAL-BIN`  | Inventory of executables in `/usr/local/bin` and `/usr/local/sbin` that no package owns (name, size, date, link target; contents never read) |
 
 ### Kernel
 
@@ -344,7 +345,9 @@ message.
 | `APT-REPO-SUITE`                         | Repositories targeting another Ubuntu release (critical for official archives)                       |
 | `APT-REPO-DUPLICATE`                     | Same repository declared in several files                                                            |
 | `APT-LEGACY-KEYS`                        | Legacy global keyring `/etc/apt/trusted.gpg`                                                         |
+| `APT-KEY-EXPIRED`                        | Repository signing keys that expired (WARNING when an enabled repository uses them) or expire within 30 days (INFO), read with `gpg --show-keys` in a private temporary home |
 | `APT-UNATTENDED`                         | Automatic security updates installed and enabled                                                     |
+| `APT-UNATTENDED-THIRDPARTY`              | Enabled third-party repositories that automatic updates do not cover (`Allowed-Origins`, `Origins-Pattern`), with their pending updates; coverage "not determined" when a pattern is not reproduced (INFO) |
 | `APT-UNATTENDED-LASTRUN` / `-ERRORS`     | Last run date and recent errors (sudo)                                                               |
 | `APT-PRO-STATUS`                         | Security coverage summary from `pro security-status`                                                 |
 
@@ -364,6 +367,7 @@ message.
 | ID                               | Check                                                                                                                   |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `SVC-FAILED` / `SVC-USER-FAILED` | Failed system and user units                                                                                            |
+| `SVC-SOCKET-ORPHAN`              | Active socket units whose service no longer exists (system, and the user's own when run without sudo)                  |
 | `SVC-NETWORK`                    | Network-facing services enabled at boot (web servers, databases, printing, VPN, remote desktop, Node process managers…) |
 
 ### Persistence (scheduled and startup jobs)
@@ -526,6 +530,7 @@ yourself is a red flag.**
 | `SEC-SSH-INVENTORY` | Key list with type, protection, mode and date, to spot obsolete keys     |
 | `SEC-SSH-PERMS`     | Permissions of `~/.ssh` and private keys                                 |
 | `SEC-HOME-PERMS`    | Home directory readable by other users                                   |
+| `SEC-SECRET-PERMS`  | Files that usually hold credentials (`~/.netrc`, `~/.git-credentials`, `~/.aws/credentials`, `~/.docker/config.json`, `~/.config/gh/hosts.yml`, Claude Code, FileZilla…) readable or writable by group or others, or not owned by the user; mode only, files never opened (INFO when no other account can reach them) |
 
 ## Configuration
 

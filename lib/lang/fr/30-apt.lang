@@ -124,6 +124,29 @@ APT-LEGACY-KEYS.info.act.1=Liste les clés du fichier, avec leur propriétaire e
 APT-LEGACY-KEYS.info.act.2=Pour chaque éditeur, suivez ses instructions d'installation actuelles, qui rangent sa clé dans un fichier séparé. Retirez ensuite l'ancienne clé du trousseau global.
 APT-LEGACY-KEYS.info.caution=Avant de faire de nouveau confiance à une clé, vérifiez que son empreinte correspond à celle publiée sur le site de l'éditeur. Retirer une clé dont un dépôt a encore besoin fait échouer 'apt update' pour ce dépôt.
 
+# ---- APT-KEY-EXPIRED ----
+APT-KEY-EXPIRED.warn.title={n} clé(s) de signature expirée(s) encore utilisée(s) par des dépôts activés
+APT-KEY-EXPIRED.warn.impact=Chaque dépôt signe ses paquets avec une clé, et apt vérifie la signature. Une fois la clé expirée, apt refuse les nouvelles listes de paquets de ce dépôt : ses logiciels ne sont plus mis à jour, correctifs de sécurité compris, et 'sudo apt update' affiche une erreur pour ce dépôt (EXPKEYSIG ou « expired »).
+APT-KEY-EXPIRED.warn.act.1=Liste les clés du trousseau avec leur propriétaire et leur date d'expiration (« expired »). Lecture seule.
+APT-KEY-EXPIRED.warn.act.2=Liste les dépôts utilisés et leur origine, pour retrouver quel logiciel vient du dépôt cité ci-dessous. Lecture seule.
+APT-KEY-EXPIRED.warn.act.3=Si vous utilisez encore ce logiciel, récupérez la nouvelle clé sur le site de l'éditeur et suivez ses instructions d'installation actuelles : elles remplacent le fichier de trousseau cité ci-dessous. Les éditeurs publient souvent la clé renouvelée avant l'expiration de l'ancienne, ou juste après.
+APT-KEY-EXPIRED.warn.act.4=Si vous n'utilisez plus ce logiciel, désactivez plutôt son dépôt : dans son fichier de /etc/apt/sources.list.d, ajoutez 'Enabled: no' (fichier .sources) ou mettez '#' en début de ligne (fichier .list). Réversible en retirant cette modification.
+APT-KEY-EXPIRED.warn.caution=Avant de faire confiance à une nouvelle clé, vérifiez que son empreinte correspond à celle publiée sur le site de l'éditeur. Ne téléchargez pas une clé depuis un lien trouvé ailleurs : une clé décide des paquets que votre ordinateur accepte avec tous les droits d'administrateur.
+APT-KEY-EXPIRED.ev.1=Clés expirées et dépôts qui les utilisent
+APT-KEY-EXPIRED.ev.expired={ring} : clé {id} ({uid}) expirée le {date} ; utilisée par : {repos}
+APT-KEY-EXPIRED.ev.unused={ring} : clé {id} ({uid}) expirée le {date} ; utilisée par aucun dépôt activé
+APT-KEY-EXPIRED.ev.soon={ring} : clé {id} ({uid}) expire le {date} ; utilisée par : {repos}
+APT-KEY-EXPIRED.ev.none=aucun dépôt activé
+APT-KEY-EXPIRED.ev.inline=clé écrite dans {file}
+APT-KEY-EXPIRED.info.title={n} clé(s) de signature de dépôt expirant dans moins de 30 jours, ou expirée(s) mais inutilisée(s)
+APT-KEY-EXPIRED.info.impact=Une clé qui expire dans moins de 30 jours fonctionne encore aujourd'hui : une fois expirée, apt refusera les mises à jour des dépôts qui l'utilisent. Une clé expirée qu'aucun dépôt activé n'utilise est sans effet sur les mises à jour.
+APT-KEY-EXPIRED.info.act.1=Pour une clé qui expire bientôt, vérifiez sur le site de l'éditeur si une clé renouvelée est publiée, et installez-la en suivant ses instructions. Souvent, l'éditeur prolonge la clé et son paquet met lui-même le trousseau à jour : rien à faire.
+APT-KEY-EXPIRED.info.act.2=Une clé expirée qu'aucun dépôt n'utilise peut rester : elle est sans danger. Si vous supprimez son fichier, gardez-en une copie hors de /etc/apt.
+APT-KEY-EXPIRED.ev.2=Clés concernées
+APT-KEY-EXPIRED.ok.title=Aucune clé de signature de dépôt expirée ou proche de l'expiration ({n} trousseau(x) lu(s))
+APT-KEY-EXPIRED.partial.1=clés de signature des dépôts non vérifiées (gpg n'est pas installé)
+APT-KEY-EXPIRED.partial.2=trousseau(x) illisible(s), leurs clés n'ont pas été vérifiées : {rings}
+
 # ---- APT-UNATTENDED ----
 APT-UNATTENDED.ok.title=Mises à jour de sécurité automatiques activées
 APT-UNATTENDED.off.title=unattended-upgrades est installé mais désactivé
@@ -134,6 +157,23 @@ APT-UNATTENDED.missing.title=unattended-upgrades n'est pas installé
 APT-UNATTENDED.missing.impact=Aucun programme n'installe automatiquement les mises à jour de sécurité. Elles n'arrivent que si quelqu'un les installe à la main : l'ordinateur peut rester exposé pendant des semaines.
 APT-UNATTENDED.missing.act.1=Indique si unattended-upgrades est proposé par vos dépôts. Lecture seule.
 APT-UNATTENDED.missing.act.2=Installe unattended-upgrades, qui installera ensuite les mises à jour de sécurité chaque jour. Réversible en le retirant.
+
+# ---- APT-UNATTENDED-THIRDPARTY ----
+APT-UNATTENDED-THIRDPARTY.info.title={n} dépôt(s) tiers hors des mises à jour automatiques
+APT-UNATTENDED-THIRDPARTY.mixed.title={n} dépôt(s) tiers hors des mises à jour automatiques, {u} non déterminé(s)
+APT-UNATTENDED-THIRDPARTY.undet.title=Couverture par les mises à jour automatiques non déterminée pour {u} dépôt(s) tiers
+APT-UNATTENDED-THIRDPARTY.info.impact=Les mises à jour automatiques (unattended-upgrades) n'installent que les paquets des origines autorisées dans leurs réglages : par défaut, celles d'Ubuntu. C'est le comportement normal d'Ubuntu, pas une anomalie. Les paquets des dépôts ci-dessous ne se mettent à jour que lorsque quelqu'un lance 'sudo apt upgrade' à la main : leurs correctifs de sécurité attendent jusque-là. « Non déterminé » signifie que les réglages utilisent une forme que cet audit ne reproduit pas : vérifiez à la main. C'est à vous de choisir ce qui vous convient.
+APT-UNATTENDED-THIRDPARTY.info.act.1=Affiche les réglages des mises à jour automatiques, dont les origines autorisées (Allowed-Origins, Origins-Pattern). Lecture seule.
+APT-UNATTENDED-THIRDPARTY.info.act.2=Liste les mises à jour en attente, chacune avec le nom de la branche (suite) d'où elle vient (souvent « stable » pour un dépôt tiers). Lecture seule.
+APT-UNATTENDED-THIRDPARTY.info.act.3=Premier choix : installez les mises à jour à la main régulièrement, par exemple une fois par semaine. apt affiche la liste et demande confirmation avant d'installer quoi que ce soit.
+APT-UNATTENDED-THIRDPARTY.info.act.4=Second choix : faites entrer un dépôt dans les mises à jour automatiques. Créez un fichier dans /etc/apt/apt.conf.d/ (par exemple 51unattended-upgrades-local, avec 'sudo nano') contenant : Unattended-Upgrade::Origins-Pattern { "origin=<origine>,codename=<nom-de-code>"; }; avec les valeurs o= et n= de ce dépôt indiquées ci-dessous. Réversible en supprimant le fichier.
+APT-UNATTENDED-THIRDPARTY.info.act.5=Lance les mises à jour automatiques en mode test et indique, pour chaque paquet, si son origine est autorisée : vérifiez que le dépôt est maintenant pris en compte. Les paquets sont téléchargés, mais rien n'est installé.
+APT-UNATTENDED-THIRDPARTY.info.caution=Une mise à jour tierce installée automatiquement peut casser un logiciel sans prévenir, à un moment que vous n'avez pas choisi, et personne ne la relit avant. N'ajoutez que les dépôts d'éditeurs de confiance, dont vous pouvez vous passer du logiciel pendant une journée.
+APT-UNATTENDED-THIRDPARTY.ev.1=Dépôts tiers (origine telle que publiée par le dépôt)
+APT-UNATTENDED-THIRDPARTY.ev.none={repo} : non couvert ({release}) ; mises à jour en attente : {n}
+APT-UNATTENDED-THIRDPARTY.ev.undet={repo} : couverture non déterminée ({release}) ; mises à jour en attente : {n}
+APT-UNATTENDED-THIRDPARTY.ok.title=Les mises à jour automatiques couvrent le(s) {n} dépôt(s) tiers
+APT-UNATTENDED-THIRDPARTY.partial.1=couverture des dépôts tiers par les mises à jour automatiques non vérifiée (échec d'apt-cache policy)
 
 # ---- APT-UNATTENDED-LASTRUN ----
 APT-UNATTENDED-LASTRUN.warn.title=Dernier passage d'unattended-upgrades il y a {days} jours ({date})

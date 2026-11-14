@@ -26,6 +26,23 @@ SVC-USER-FAILED.warn.act.2=Shows all the messages of the unit since the computer
 SVC-USER-FAILED.warn.act.3=Once the cause is fixed, the unit leaves this list the next time it starts successfully (at the latest at your next login).
 SVC-USER-FAILED.ev.1=Failed user units
 
+# ---- SVC-SOCKET-ORPHAN ----
+# A socket unit listens for connections on behalf of a service and starts it
+# on the first connection (socket activation).
+SVC-SOCKET-ORPHAN.warn.title={n} active socket(s) whose service no longer exists
+SVC-SOCKET-ORPHAN.warn.impact=A socket unit listens for connections on behalf of a service and starts that service when the first connection arrives. Here the socket still listens, but its service no longer exists, usually because the package that provided it was removed. Every program that connects to it gets an error, and the socket stays open for nothing.
+SVC-SOCKET-ORPHAN.warn.act.1=Shows the socket, its state, where it listens and its last messages. Read-only.
+SVC-SOCKET-ORPHAN.warn.act.2=Shows the socket's settings file and its location, which often tells which software it belonged to. Read-only.
+SVC-SOCKET-ORPHAN.warn.act.3=Closes the socket now and no longer opens it at boot. Can be undone: 'sudo systemctl enable --now' followed by the same name opens it again.
+SVC-SOCKET-ORPHAN.warn.caution=If you have just removed or are reinstalling the software, a reinstall brings the service back and fixes this by itself. Check with 'dpkg -S' followed by the file shown by 'systemctl cat' whether a package still provides the socket.
+SVC-SOCKET-ORPHAN.ev.1=Active sockets and the missing service
+SVC-SOCKET-ORPHAN.ok.title=Every active socket has its service
+SVC-SOCKET-ORPHAN.partial.1=active sockets not checked (systemctl failed)
+SVC-SOCKET-ORPHAN.user.title={n} active user socket(s) whose service no longer exists
+SVC-SOCKET-ORPHAN.user.impact=A socket unit listens for connections on behalf of a service and starts that service when the first connection arrives. This one belongs to your session: it still listens, but its service no longer exists, usually because the software that provided it was removed. Every program that connects to it gets an error.
+SVC-SOCKET-ORPHAN.user.act.3=Closes the socket now and no longer opens it at login. Can be undone: 'systemctl --user enable --now' followed by the same name opens it again.
+SVC-SOCKET-ORPHAN.ev.2=Active user sockets and the missing service
+
 # ---- SVC-NETWORK ----
 SVC-NETWORK.info.title={n} network-facing service(s) enabled at boot — confirm each is still needed
 SVC-NETWORK.info.impact=Each of these services starts with the computer and can accept connections from other machines. A service started once for a test and then forgotten can stay open for years, and every open service is a way in if it has a flaw.

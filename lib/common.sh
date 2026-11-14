@@ -46,7 +46,8 @@ declare -A T=()
 
 # APT options that keep apt-cache / apt list from writing their binary cache
 # (/var/cache/apt/*.bin) when run as root: the cache is built in memory only.
-APT_RO=(-o Dir::Cache::pkgcache= -o Dir::Cache::srcpkgcache=)
+APT_RO=(-o Dir::Cache::pkgcache= -o Dir::Cache::srcpkgcache=
+        -o Dir::Log::Planner=/dev/null -o Dir::Log::Solver=/dev/null)
 
 # ---- terminal colours --------------------------------------------------------
 init_colors() {
