@@ -20,6 +20,8 @@
 # comment that this script reads:   # lang-keys: KEY1 KEY2 ...
 # A call to action whose key cannot be read (for example a command written as
 # "$(...)" with inner quotes) is an error: put the command in a variable.
+# The top-bar icon (contrib/indicator/uhc-indicator.py) is checked the same
+# way: the first argument of tr(...) must be a literal key.
 # -----------------------------------------------------------------------------
 
 set -uo pipefail
@@ -107,6 +109,39 @@ for file in "${code_files[@]}"; do
         fi
         if [[ "$logical" =~ $A_CALL_RE && ! "$logical" =~ $A_RE ]]; then
             err "$file:$start: cannot read the message key of this action call"
+        fi
+    done <"$file"
+done
+
+# ---- keys used by the top-bar icon (Python) ------------------------------------
+# Same rules, Python syntax: the first argument of tr(...) is a literal key,
+# or the keys are listed in a "# lang-keys:" comment. A tr( call whose key
+# cannot be read is an error (the definition 'def tr(' excepted).
+py_files=(contrib/indicator/uhc-indicator.py)
+PY_RE="(^|[^[:alnum:]_.])tr\\([[:space:]]*[\"']${KEY_RE}[\"']"
+PY_CALL_RE='(^|[^[:alnum:]_.])tr\('
+for file in "${py_files[@]}"; do
+    [[ -f "$file" ]] || { err "$file is missing"; continue; }
+    n=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        n=$((n + 1))
+        trimmed="${line#"${line%%[![:space:]]*}"}"
+        if [[ "$trimmed" == \#* ]]; then
+            if [[ "$trimmed" =~ ^#[[:space:]]*lang-keys:(.*)$ ]]; then
+                for key in ${BASH_REMATCH[1]}; do USED[$key]="$file:$n"; done
+            fi
+            continue
+        fi
+        [[ "$line" =~ $PY_CALL_RE ]] || continue
+        found=0
+        while IFS= read -r m; do
+            [[ -n "$m" ]] || continue
+            key="$(grep -oE "${KEY_RE}" <<<"$m" | tail -n 1)"
+            [[ -n "$key" ]] && { USED[$key]="$file:$n"; found=$((found + 1)); }
+        done < <(grep -oE "$PY_RE" <<<"$line")
+        calls="$(grep -oE "$PY_CALL_RE" <<<"$line" | wc -l)"
+        if (( found < calls )) && [[ "$trimmed" != "def tr("* ]]; then
+            err "$file:$n: cannot read the message key of this tr() call"
         fi
     done <"$file"
 done

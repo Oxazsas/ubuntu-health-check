@@ -15,3 +15,7 @@ state/
 
 # Local instructions for Claude Code (not published).
 CLAUDE.md
+
+# Python bytecode (the optional top-bar icon).
+__pycache__/
+*.pyc

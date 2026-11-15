@@ -17,11 +17,21 @@ jobs:
       - name: Install ShellCheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Run ShellCheck (all severities, including style)
-        run: shellcheck --version && shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh
+        run: shellcheck --version && shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh contrib/check-units.sh
       - name: Syntax check
         # bash -n checks only its first file: loop over each one.
-        run: for f in uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh; do bash -n "$f" || exit 1; done
+        run: for f in uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh contrib/check-units.sh; do bash -n "$f" || exit 1; done
       - name: Language catalogs
         # Every key used in the code exists in English, every translation
         # matches English (same keys, same {variables}), no unused key.
         run: bash contrib/check-lang.sh
+      - name: Reference systemd units
+        # contrib/uhc*.service and contrib/uhc*.timer match what
+        # --install-timer writes (lib/install.sh is their only source).
+        run: bash contrib/check-units.sh
+      - name: Top-bar icon (Python syntax)
+        # Compiled into a temporary folder: nothing written in the checkout.
+        run: python3 -X pycache_prefix="$RUNNER_TEMP/pyc" -m py_compile contrib/indicator/uhc-indicator.py contrib/indicator/test_indicator.py
+      - name: Top-bar icon (tests without display)
+        # Log parsing, report path checks, commands, catalogs; no gi needed.
+        run: python3 -B -I contrib/indicator/test_indicator.py -v

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ubuntu-health-check, last audit: critical problems. Filled red octagon,
+     white cross, dark rim. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <path d="M5.1 1H10.9L15 5.1V10.9L10.9 15H5.1L1 10.9V5.1Z" fill="#d42c2c" stroke="#4a0a0a"
+        stroke-width="1" stroke-linejoin="round"/>
+  <path d="M5.4 5.4 10.6 10.6M10.6 5.4 5.4 10.6" fill="none" stroke="#ffffff" stroke-width="2"
+        stroke-linecap="round"/>
+</svg>

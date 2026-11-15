@@ -1,0 +1,41 @@
+# Managed by ubuntu-health-check: change it with --install-timer, remove it with --remove-timer.
+# ubuntu-health-check timer-format 1
+
+[Unit]
+Description=Ubuntu Health Check, full audit as root (read-only)
+
+[Service]
+Type=oneshot
+ExecStart="/opt/ubuntu-health-check/uhc.sh" --data-dir "@DATA_DIR@" --quiet --no-notify
+# Audited user (home-directory checks), as 'sudo' sets it for uhc-root.
+Environment=SUDO_USER=@USER@
+# Exit codes 1 (warnings) and 2 (critical findings) are audit results,
+# not failures of the service.
+SuccessExitStatus=1 2
+Nice=10
+IOSchedulingClass=idle
+
+# Sandbox. The whole file system is read-only except: the data directory
+# (reports and logs, written as its owner), the private state of the root
+# copy, and /run (lock file /run/ubuntu-health-check.lock). /tmp is private.
+ProtectSystem=strict
+ReadWritePaths="@DATA_DIR@" "/opt/ubuntu-health-check/state" /run
+PrivateTmp=yes
+UMask=0077
+# The audit gains no privilege, changes no kernel setting, loads no module,
+# mounts nothing, creates no namespace and makes no network connection
+# (local sockets and netlink only).
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=~@cpu-emulation @debug @module @mount @obsolete @raw-io @reboot @swap
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+IPAddressDeny=any

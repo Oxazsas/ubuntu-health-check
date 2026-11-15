@@ -1,0 +1,16 @@
+# Managed by ubuntu-health-check: change it with --install-timer, remove it with --remove-timer.
+# ubuntu-health-check timer-format 1
+# Frequency: monthly
+
+[Unit]
+Description=Full Ubuntu Health Check (root), monthly
+
+[Timer]
+# 1st day of each month at 11:00, within 15 minutes.
+OnCalendar=*-*-01 11:00:00
+RandomizedDelaySec=15min
+# If the machine was off at that time, run at the next boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

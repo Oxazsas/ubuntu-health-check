@@ -50,6 +50,12 @@ use [Lynis](https://cisofy.com/lynis/) as well — the two are complementary.
 - **Persistent output stays in the data directory** (`reports/`, `logs/`;
   by default the tool directory). Transient files live in a private temporary
   directory (mode 700) removed at exit.
+- **Only the explicit installation commands write elsewhere**, each after
+  showing what it will write and asking: `--install-aliases`
+  (`~/.bash_aliases`), `--install-timer` (systemd units) and
+  `--install-indicator` (one autostart entry). Each has its `--remove-…`
+  counterpart, and none replaces or removes a file it did not write without
+  saying so.
 - **Root runs use a root-owned copy of the code** (see
   [Full audit with sudo](#full-audit-with-sudo)):
   - as root, the tool only runs audits from code owned by root and writable
@@ -133,6 +139,11 @@ No installation step, no dependency. The whole tool lives in this directory.
 | `--no-color`                                    | Plain terminal output                                                                                                                                                                        |
 | `--accept-jobs [FP…]`                           | Accept pending job changes: the given fingerprints, or (in a terminal) the list shown on screen after confirmation (see [Persistence detection](#persistence-detection-approach-and-limits)) |
 | `--install-aliases [NAME]` / `--remove-aliases` | Add or remove the optional `uhc`, `uhc-root`, `uhc-last` aliases                                                                                                                             |
+| `--install-timer [user\|root] [FREQ]`           | Schedule the audit with a systemd timer (`daily`, `weekly`, `monthly`); see [Scheduling](#scheduling)                                                                                        |
+| `--remove-timer [user\|root]`                   | Remove that timer                                                                                                                                                                            |
+| `--timer-status`                                | Print `user=…` and `root=…`: `none`, `daily`, `weekly`, `monthly` or `custom`                                                                                                                |
+| `-y`, `--yes`                                   | With `--install-timer user` or `--remove-timer user` only: no question                                                                                                                       |
+| `--install-indicator` / `--remove-indicator`    | Add or remove the optional top-bar icon (desktop only)                                                                                                                                       |
 | `--fingerprint`                                 | Print the SHA-256 fingerprint of the code and exit                                                                                                                                           |
 | `-h`, `--help` / `-V`, `--version`              | Help / version                                                                                                                                                                               |
 
@@ -645,32 +656,58 @@ completely forgotten.
 
 ## Scheduling
 
-Two options, both documented in `contrib/`. They run the audit
-**unprivileged**; keep sudo runs manual.
+The tool installs its own systemd timer: daily, weekly or monthly, at a fixed
+daytime hour (within 15 minutes). A run missed while the machine was off
+happens at the next start. This works on a server as well as on a desktop.
 
-### Option A — systemd user timer (recommended)
-
-Notifications are reliable, and a missed run (machine off) is caught up at the
-next session. Run these commands **from the tool directory**: the `sed` step
-writes your actual path into the unit.
+### Routine audit (your account, no sudo)
 
 ```bash
-mkdir -p ~/.config/systemd/user
-sed "s|@UHC_DIR@|$PWD|g" contrib/uhc.service > ~/.config/systemd/user/uhc.service
-cp contrib/uhc.timer ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now uhc.timer
-systemctl --user list-timers uhc.timer     # check the next run
+./uhc.sh --install-timer                 # user, monthly (default)
+./uhc.sh --install-timer user weekly     # run again to change the frequency
+./uhc.sh --timer-status                  # prints user=weekly and root=none
+./uhc.sh --remove-timer
 ```
+
+The command shows the two units it will write
+(`~/.config/systemd/user/uhc.service` and `uhc.timer`, 10:00) and the commands
+it will run, asks for confirmation, then runs `systemctl --user daemon-reload`
+and `systemctl --user enable --now uhc.timer`. `--yes` skips the question
+(user timer only, for programs such as the top-bar icon). Units written by
+hand, as earlier versions of this README described, are never replaced or
+removed silently.
 
 A user timer runs while your user session manager is alive (normally: while
 you are logged in). To run it even when you are not logged in, enable
-lingering: `sudo loginctl enable-linger "$USER"`.
+lingering: `sudo loginctl enable-linger "$USER"`. Check the next run with
+`systemctl --user list-timers uhc.timer`; test with
+`systemctl --user start uhc.service`. If you move the tool, run
+`--install-timer` again.
 
-To test the service immediately: `systemctl --user start uhc.service`, then
-look at `logs/uhc.log`. If you move the tool, repeat the `sed` step.
+### Full audit (root)
 
-### Option B — cron
+Once the root-owned copy is installed (see
+[Full audit with sudo](#full-audit-with-sudo)):
+
+```bash
+uhc-root --install-timer root weekly     # = sudo /opt/ubuntu-health-check/uhc.sh --data-dir <this folder> ...
+uhc-root --remove-timer root
+```
+
+This writes `/etc/systemd/system/uhc-root.service` and `uhc-root.timer`
+(11:00), which run `/opt/ubuntu-health-check/uhc.sh --data-dir <folder>
+--quiet --no-notify`. The reports are written in your folder with your
+privileges, as with `uhc-root`. The root timer is only installed by the
+root-owned copy, in a terminal, never with `--yes`. Its service runs in a
+sandbox: read-only file system except the data folder, private `/tmp`, no
+network, no privilege gain.
+
+The first audit after installing a timer reports the new units as new startup
+jobs (`SVC-PERSISTENCE-NEW-*`): expected, accept them with `--accept-jobs`.
+`contrib/uhc*.service` and `contrib/uhc*.timer` are reference copies of the
+units the tool writes.
+
+### Without systemd: cron
 
 From the tool directory:
 
@@ -682,6 +719,43 @@ crontab -l    # check the new line
 This appends one line (1st of each month, 10:00) to your existing crontab.
 The tool sets its own `PATH` and locates your desktop session bus, so
 notifications also work from cron when you are logged in.
+
+## Top-bar icon (optional, desktop only)
+
+On Ubuntu Desktop, an icon in the top bar shows the state of the last audit,
+by colour and by shape:
+
+| Icon | Meaning |
+|---|---|
+| Green circle with a check mark | Nothing to report |
+| Orange triangle | Warnings |
+| Red octagon | Critical findings |
+| Hollow grey ring with a question mark | No audit yet, or the last one is older than 35 days |
+
+Its menu shows the date and counts of the last audit and what changed since
+the previous one, opens the last report or the reports folder, runs an audit,
+opens a terminal for a full audit with sudo, and sets the schedule: the
+routine audit directly, the full audit in a terminal with sudo.
+
+```bash
+./uhc.sh --install-indicator      # after confirmation; no sudo
+./uhc.sh --remove-indicator
+```
+
+It writes one file, `~/.config/autostart/uhc-indicator.desktop`, so the icon
+starts at each login. Requirements, all present on Ubuntu Desktop: `python3`,
+`python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-ayatanaappindicator3-0.1` and, under
+GNOME, the "Ubuntu AppIndicators" extension, enabled. If one is missing, the
+command says which and writes nothing. The installation wizard offers the
+icon only to a user with a graphical session: nothing changes on a server,
+and the audit never needs the icon.
+
+The icon is the only part of the tool written in Python. It never runs as
+root and never asks for a password itself: before anything that needs sudo,
+it asks for confirmation and shows the command, then sudo asks in a terminal. It makes no
+network connection and runs only fixed commands, as lists of arguments. It
+reads `logs/uhc.log` as untrusted data: the only value taken from it is the
+report path, accepted only as a regular file inside `reports/`.
 
 ## Using the report with an AI assistant
 
@@ -811,8 +885,8 @@ print secrets, pass untrusted names through `evidence` (or `clean_line` for
 titles), run `apt`/`apt-cache`/`apt-mark` with `"${APT_RO[@]}"`, read files in
 the user's home through `as_target`, never report OK when the underlying
 command failed (use `partial`), and run
-`shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh`
-and `contrib/check-lang.sh` before submitting.
+`shellcheck -x -S style uhc.sh lib/*.sh lib/checks/*.sh contrib/check-lang.sh contrib/check-units.sh`,
+`contrib/check-lang.sh` and `contrib/check-units.sh` before submitting.
 
 ## License
 

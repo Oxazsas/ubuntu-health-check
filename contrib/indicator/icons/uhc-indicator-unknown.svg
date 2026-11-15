@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ubuntu-health-check, no audit or last audit too old. Hollow grey ring
+     (no fill: unlike the three result icons) with a question mark. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <circle cx="8" cy="8" r="6.3" fill="#8c8c8c" fill-opacity="0.18" stroke="#8c8c8c" stroke-width="1.6"/>
+  <path d="M6.1 6.3A1.95 1.95 0 1 1 8.9 8C8.3 8.35 8 8.7 8 9.3V9.6" fill="none" stroke="#8c8c8c"
+        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="8" cy="11.7" r="0.95" fill="#8c8c8c"/>
+</svg>

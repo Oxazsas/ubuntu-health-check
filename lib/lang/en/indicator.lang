@@ -1,0 +1,66 @@
+# Messages of the optional top-bar icon (contrib/indicator/uhc-indicator.py).
+# Same format and rules as common.lang. Read as text by the icon (Python),
+# never executed. Keep it short and plain: the menu is for everyone.
+
+# ---- icon ----
+ui.ind.title=Ubuntu Health Check
+ui.ind.icon.ok=Last audit: nothing to report
+ui.ind.icon.warning=Last audit: warnings
+ui.ind.icon.critical=Last audit: critical problems
+ui.ind.icon.unknown=No recent audit
+
+# ---- state of the last audit (top of the menu) ----
+ui.ind.status.none=No audit yet
+ui.ind.status.last=Last audit: {date} ({privileges})
+ui.ind.status.counts={critical} critical, {warning} warning(s)
+ui.ind.status.compare={new} new, {worse} worse, {resolved} resolved
+ui.ind.status.stale=No audit for {days} days
+ui.ind.priv.user=normal audit
+ui.ind.priv.root=full audit
+
+# ---- menu ----
+ui.ind.open_report=Open the last report
+ui.ind.open_folder=Open the reports folder
+ui.ind.run=Run an audit now
+ui.ind.running=Audit in progress…
+ui.ind.run_root=Run a full audit (administrator)…
+ui.ind.quit=Quit the icon
+
+# ---- schedule of the normal audit ----
+ui.ind.sched=Automatic audit
+ui.ind.sched.never=Never
+ui.ind.sched.daily=Every day
+ui.ind.sched.weekly=Every week
+ui.ind.sched.monthly=Every month
+ui.ind.sched.custom=Custom (set outside this menu)
+ui.ind.sched.unknown=Current setting unknown
+ui.ind.sched.busy=Changing…
+
+# ---- schedule of the full audit (changed in a terminal, with sudo) ----
+ui.ind.sched_root=Automatic full audit (administrator)
+ui.ind.sched_root.now=Now: {state}
+ui.ind.sched_root.set_daily=Every day…
+ui.ind.sched_root.set_weekly=Every week…
+ui.ind.sched_root.set_monthly=Every month…
+ui.ind.sched_root.set_never=Never…
+ui.ind.sched_root.no_copy=Available after a first full audit
+
+# ---- messages ----
+ui.ind.msg.busy=Another audit is already running. Try again in a few minutes.
+ui.ind.msg.audit_failed=The audit stopped with an error (code {code}).
+ui.ind.msg.sched_failed=The schedule was not changed.
+ui.ind.msg.no_terminal=No terminal program was found. Open a terminal and type this command:
+ui.ind.msg.open_failed=This could not be opened: {path}
+ui.ind.msg.start_failed=This program could not be started: {program}
+ui.ind.term.close=Press Enter to close this window.
+
+# ---- confirmation before sudo (a terminal opens, sudo asks there) ----
+ui.ind.confirm.continue=Continue
+ui.ind.confirm.cancel=Cancel
+ui.ind.confirm.root_audit.title=Run a full audit as administrator?
+ui.ind.confirm.root_audit.body=A terminal will open and sudo will ask for your session password. The full audit reads the whole system and changes nothing. Command:
+ui.ind.confirm.root_timer.title=Schedule the full audit ({freq})?
+ui.ind.confirm.root_timer.body=A terminal will open and sudo will ask for your session password, once, to install the system timer; the command then shows what it will write and asks you to confirm. After that, the full audit runs on its own in the background, without ever asking for a password. Command:
+ui.ind.confirm.root_timer_remove.title=Stop the scheduled full audit?
+ui.ind.confirm.root_timer_remove.body=A terminal will open and sudo will ask for your session password, to remove the system timer. Command:
+ui.ind.term.intro=Ubuntu Health Check runs this command with administrator rights (sudo will ask for your session password):

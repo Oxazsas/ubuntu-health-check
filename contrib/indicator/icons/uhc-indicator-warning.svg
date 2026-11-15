@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ubuntu-health-check, last audit: warnings. Filled orange triangle,
+     dark exclamation mark, dark rim. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <path d="M8 1.2 15.2 14.6H0.8Z" fill="#f2a01c" stroke="#5c3a00" stroke-width="1"
+        stroke-linejoin="round"/>
+  <path d="M8 5.6V9.8" fill="none" stroke="#1c1c1c" stroke-width="1.9" stroke-linecap="round"/>
+  <circle cx="8" cy="12.3" r="1.05" fill="#1c1c1c"/>
+</svg>

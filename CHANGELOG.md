@@ -1,5 +1,58 @@
 # Changelog
 
+## 2.12.0
+
+The audit can now schedule itself, and Ubuntu Desktop gets an optional icon in
+the top bar. The audit itself is unchanged: same checks, same IDs, still pure
+Bash and read-only, and it runs on a server as before.
+
+### Scheduling
+- New `--install-timer [user|root] [daily|weekly|monthly]` and
+  `--remove-timer [user|root]`: the tool writes and enables its own systemd
+  timer, after showing the units and asking for confirmation.
+  - `user`: user units, unprivileged audit, no sudo (10:00).
+  - `root`: system units `uhc-root.service` and `uhc-root.timer` (11:00),
+    installed only by the root-owned copy, in a terminal. The full audit
+    writes its reports in the user's data folder, and runs in a sandbox:
+    read-only file system except the data folder, private `/tmp`, no network,
+    system-call and address-family filters.
+- New `--timer-status`: prints `user=…` and `root=…` (`none`, `daily`,
+  `weekly`, `monthly`, `custom`) on stdout, for scripts.
+- New `-y`, `--yes`: no question, for the user timer only.
+- Units carry a marker. Files written by hand are never replaced or removed
+  silently. Without systemd, the command says so and points to cron.
+- `contrib/uhc.service` and `contrib/uhc.timer` are now reference copies of
+  what the tool writes, with new `contrib/uhc-root.service` and
+  `contrib/uhc-root.timer`; `contrib/check-units.sh` (and a CI step) checks
+  that they match.
+
+### Top-bar icon (optional, desktop only)
+- New `--install-indicator` and `--remove-indicator`: an icon in the Ubuntu
+  top bar, started at login by an autostart entry. It shows the state of the
+  last audit by colour and shape (green circle, orange triangle, red octagon,
+  grey ring when there is no audit or it is older than 35 days). Its menu
+  opens the reports, runs an audit, opens a terminal for a full audit and
+  sets the schedule.
+- Refused as root. When a desktop element is missing, the command says which
+  one and writes nothing.
+- Before anything that needs sudo (full audit, root timer), the icon asks for
+  confirmation, says why a password will be asked and shows the command; the
+  terminal shows that command again before sudo asks. Once installed, the root
+  timer runs without any password.
+- The installation wizard offers the icon only to a user with a graphical
+  session; nothing changes on a server.
+- `contrib/indicator/uhc-indicator.py` (Python 3, GTK 3, AyatanaAppIndicator3)
+  is the only part of the tool in Python. It reads the log field by field as
+  untrusted data, runs only fixed commands as argument lists, never asks for
+  a password and keeps one instance per user. Texts in
+  `lib/lang/*/indicator.lang`.
+- CI: Python syntax check and tests of the icon's logic (no display needed);
+  `contrib/check-lang.sh` also checks the keys used by the icon.
+
+### Not tested
+- The sandbox of the root timer and the icon were only run on Ubuntu 26.04
+  (GNOME, Wayland).
+
 ## 2.11.0
 
 The audit now compares itself with the previous one, and looks at the

@@ -27,7 +27,7 @@
 
 set -uo pipefail
 
-UHC_VERSION="2.11.0"
+UHC_VERSION="2.12.0"
 
 # Public repository used by the root installation wizard (preferred source:
 # the code goes straight from the repository to a root-owned folder). Set it in
@@ -153,6 +153,11 @@ ACCEPT_JOBS=0
 ACCEPT_FPS=()
 ALIAS_ACTION=""
 ALIAS_NAME="uhc"
+TIMER_ACTION=""          # install | remove | status
+TIMER_SCOPE=""           # user | root
+TIMER_FREQ=""            # daily | weekly | monthly
+ASSUME_YES=0
+INDICATOR_ACTION=""      # install | remove
 # Original command line, reused when the installation wizard hands over to
 # the root-owned copy.
 ORIG_ARGS=("$@")
@@ -189,6 +194,30 @@ Options:
                        Add NAME, NAME-root and NAME-last aliases to
                        ~/.bash_aliases (default NAME: uhc), after confirmation
       --remove-aliases Remove those aliases
+      --install-timer [user|root] [daily|weekly|monthly]
+                       Schedule the audit with a systemd timer, after
+                       confirmation (default: user monthly). Run it again to
+                       change the frequency.
+                         user: your own user units, unprivileged audit of this
+                               folder (run without sudo)
+                         root: system units running the full audit from the
+                               root-owned copy, reports in --data-dir (run as
+                               sudo ${ROOT_INSTALL_DIR}/uhc.sh --data-dir DIR ...)
+      --remove-timer [user|root]
+                       Disable and remove that timer (default: user)
+      --timer-status   Print two lines, user=STATE and root=STATE, where STATE
+                       is none, daily, weekly, monthly or custom (a timer not
+                       written by this tool, or edited since)
+  -y, --yes            With --install-timer user or --remove-timer user only:
+                       no question (for programs; never for root)
+      --install-indicator
+                       Desktop only (optional): an icon in the top bar showing
+                       the state of the last audit, started at each login
+                       (writes ~/.config/autostart/uhc-indicator.desktop),
+                       after confirmation; needs python3-gi and
+                       gir1.2-ayatanaappindicator3-0.1 (run without sudo)
+      --remove-indicator
+                       Remove that autostart entry
       --fingerprint    Print the SHA-256 fingerprint of the code and exit
                        (compare a root copy with its source)
   -h, --help           Show this help
@@ -227,10 +256,50 @@ while (( $# > 0 )); do
             ALIAS_ACTION=install
             if [[ -n "${2:-}" && "${2:0:1}" != - ]]; then ALIAS_NAME="$2"; shift; fi ;;
         --remove-aliases) ALIAS_ACTION=remove ;;
+        --install-timer|--remove-timer)
+            # Optional scope and (install only) frequency, in either order,
+            # each checked against a closed list.
+            [[ -z "$TIMER_ACTION" ]] || die "only one timer action at a time"
+            timer_opt="$1"; TIMER_ACTION="${1#--}"; TIMER_ACTION="${TIMER_ACTION%-timer}"
+            while [[ -n "${2:-}" && "${2:0:1}" != - ]]; do
+                case "$2" in
+                    user|root)
+                        [[ -z "$TIMER_SCOPE" ]] || die "$timer_opt: give user or root once"
+                        TIMER_SCOPE="$2" ;;
+                    daily|weekly|monthly)
+                        [[ "$timer_opt" == --install-timer ]] || die "$timer_opt takes no frequency"
+                        [[ -z "$TIMER_FREQ" ]] || die "$timer_opt: give the frequency once"
+                        TIMER_FREQ="$2" ;;
+                    *)  if [[ "$timer_opt" == --install-timer ]]; then
+                            die "$timer_opt: invalid argument (expected user or root, and daily, weekly or monthly)"
+                        fi
+                        die "$timer_opt: invalid argument (expected user or root)" ;;
+                esac
+                shift
+            done ;;
+        --timer-status) [[ -z "$TIMER_ACTION" ]] || die "only one timer action at a time"; TIMER_ACTION=status ;;
+        -y|--yes)      ASSUME_YES=1 ;;
+        --install-indicator|--remove-indicator)
+            [[ -z "$INDICATOR_ACTION" ]] || die "only one indicator action at a time"
+            INDICATOR_ACTION="${1#--}"; INDICATOR_ACTION="${INDICATOR_ACTION%-indicator}" ;;
         *) die "unknown option: $1 (see --help)" ;;
     esac
     shift
 done
+if [[ -n "$INDICATOR_ACTION" ]]; then
+    [[ -z "$TIMER_ACTION" && -z "$ALIAS_ACTION" ]] || die "indicator, timer and alias options cannot be combined"
+fi
+if [[ -n "$TIMER_ACTION" ]]; then
+    [[ -z "$ALIAS_ACTION" ]] || die "timer and alias options cannot be combined"
+    TIMER_SCOPE="${TIMER_SCOPE:-user}"; TIMER_FREQ="${TIMER_FREQ:-monthly}"
+fi
+# --yes is for a program changing the user timer (e.g. from a menu): those
+# units belong to the user's own account and run the audit unprivileged.
+# Root actions always need a human in a terminal, as the installation wizard.
+if [[ "$ASSUME_YES" == 1 ]]; then
+    [[ ( "$TIMER_ACTION" == install || "$TIMER_ACTION" == remove ) && "$TIMER_SCOPE" == user ]] \
+        || die "--yes only applies to --install-timer user and --remove-timer user"
+fi
 
 # ---- code fingerprint -------------------------------------------------------------
 # fingerprint_of DIR — SHA-256 over uhc.sh, every module and every language
@@ -297,6 +366,32 @@ check_code_trust() {
     source "${UHC_DIR}/lib/install.sh"
     root_install_wizard
 }
+# ---- timers: who may install them (decided before the trust check) ------------
+# Only exits, loads nothing: the user timer is never written as root, and the
+# root timer only by the root-owned copy itself, run as root. Any other copy
+# run as root would go through check_code_trust (installation wizard), which
+# must stay the only thing a user-owned copy does as root.
+if [[ "$TIMER_ACTION" == install || "$TIMER_ACTION" == remove ]]; then
+    [[ "$TIMER_SCOPE" == user && "$IS_ROOT" == 1 ]] \
+        && die "--${TIMER_ACTION}-timer user manages your own systemd user units: run it without sudo"
+    if [[ "$TIMER_SCOPE" == root && ( "$IS_ROOT" != 1 || "$UHC_DIR" != "$ROOT_INSTALL_DIR" ) ]]; then
+        timer_dd="${DATA_DIR:-$UHC_DIR}"
+        timer_dd="$(cd -- "$timer_dd" 2>/dev/null && pwd -P || printf '%s' "$timer_dd")"
+        timer_cmd="sudo ${ROOT_INSTALL_DIR}/uhc.sh --data-dir $(printf '%q' "$timer_dd") --${TIMER_ACTION}-timer root"
+        [[ "$TIMER_ACTION" == install ]] && timer_cmd+=" ${TIMER_FREQ}"
+        timer_msg="the root timer is managed by the root-owned copy, run as root:
+  ${timer_cmd}"
+        [[ -f "${ROOT_INSTALL_DIR}/uhc.sh" ]] || timer_msg+="
+The root-owned copy is not installed yet; install it first with: sudo $(printf '%q' "${UHC_DIR}/uhc.sh")"
+        die "$timer_msg"
+    fi
+fi
+
+# ---- top-bar icon: never as root (decided before the trust check) ------------------
+# It belongs to the user's desktop session; only exits, loads nothing.
+[[ -n "$INDICATOR_ACTION" && "$IS_ROOT" == 1 ]] \
+    && die "--${INDICATOR_ACTION}-indicator belongs to your desktop session: run it without sudo"
+
 [[ "$IS_ROOT" == 1 ]] && check_code_trust
 
 # ---- libraries (loaded only once the code is trusted, or when unprivileged) -------------
@@ -394,6 +489,19 @@ load_lang "$UHC_LANG_CODE"
 # ---- alias management (no audit) --------------------------------------------------
 [[ "$ALIAS_ACTION" == install ]] && install_aliases "$ALIAS_NAME"
 [[ "$ALIAS_ACTION" == remove ]] && remove_aliases
+
+# ---- scheduled audits (no audit) --------------------------------------------------
+case "$TIMER_ACTION" in
+    install) install_timer "$TIMER_SCOPE" "$TIMER_FREQ" ;;
+    remove)  remove_timer "$TIMER_SCOPE" ;;
+    status)  timer_status ;;
+esac
+
+# ---- top-bar icon (no audit) --------------------------------------------------------
+case "$INDICATOR_ACTION" in
+    install) install_indicator ;;
+    remove)  remove_indicator ;;
+esac
 
 # ---- private state -------------------------------------------------------------------
 # Reference lists of the persistence check. As root, they live in the

@@ -1,0 +1,66 @@
+# Messages de l'icône facultative de la barre supérieure
+# (contrib/indicator/uhc-indicator.py). Format et règles : voir
+# lib/lang/en/indicator.lang. Garder les mêmes clés et les mêmes {variables}.
+
+# ---- icône ----
+ui.ind.title=Ubuntu Health Check
+ui.ind.icon.ok=Dernier audit : rien à signaler
+ui.ind.icon.warning=Dernier audit : avertissements
+ui.ind.icon.critical=Dernier audit : problèmes critiques
+ui.ind.icon.unknown=Pas d'audit récent
+
+# ---- état du dernier audit (haut du menu) ----
+ui.ind.status.none=Aucun audit pour l'instant
+ui.ind.status.last=Dernier audit : {date} ({privileges})
+ui.ind.status.counts={critical} critique(s), {warning} avertissement(s)
+ui.ind.status.compare={new} nouveau(x), {worse} aggravé(s), {resolved} résolu(s)
+ui.ind.status.stale=Aucun audit depuis {days} jours
+ui.ind.priv.user=audit normal
+ui.ind.priv.root=audit complet
+
+# ---- menu ----
+ui.ind.open_report=Ouvrir le dernier rapport
+ui.ind.open_folder=Ouvrir le dossier des rapports
+ui.ind.run=Lancer un audit maintenant
+ui.ind.running=Audit en cours…
+ui.ind.run_root=Lancer un audit complet (administrateur)…
+ui.ind.quit=Quitter l'icône
+
+# ---- planification de l'audit normal ----
+ui.ind.sched=Audit automatique
+ui.ind.sched.never=Jamais
+ui.ind.sched.daily=Chaque jour
+ui.ind.sched.weekly=Chaque semaine
+ui.ind.sched.monthly=Chaque mois
+ui.ind.sched.custom=Personnalisé (réglé hors de ce menu)
+ui.ind.sched.unknown=Réglage actuel inconnu
+ui.ind.sched.busy=Modification en cours…
+
+# ---- planification de l'audit complet (modifiée dans un terminal, avec sudo) ----
+ui.ind.sched_root=Audit complet automatique (administrateur)
+ui.ind.sched_root.now=Actuellement : {state}
+ui.ind.sched_root.set_daily=Chaque jour…
+ui.ind.sched_root.set_weekly=Chaque semaine…
+ui.ind.sched_root.set_monthly=Chaque mois…
+ui.ind.sched_root.set_never=Jamais…
+ui.ind.sched_root.no_copy=Disponible après un premier audit complet
+
+# ---- messages ----
+ui.ind.msg.busy=Un autre audit est déjà en cours. Réessayez dans quelques minutes.
+ui.ind.msg.audit_failed=L'audit s'est arrêté sur une erreur (code {code}).
+ui.ind.msg.sched_failed=La planification n'a pas été modifiée.
+ui.ind.msg.no_terminal=Aucun terminal n'a été trouvé. Ouvrez un terminal et tapez cette commande :
+ui.ind.msg.open_failed=Impossible d'ouvrir : {path}
+ui.ind.msg.start_failed=Impossible de lancer ce programme : {program}
+ui.ind.term.close=Appuyez sur Entrée pour fermer cette fenêtre.
+
+# ---- confirmation avant sudo (un terminal s'ouvre, sudo y demande le mot de passe) ----
+ui.ind.confirm.continue=Continuer
+ui.ind.confirm.cancel=Annuler
+ui.ind.confirm.root_audit.title=Lancer un audit complet en administrateur ?
+ui.ind.confirm.root_audit.body=Un terminal va s'ouvrir et sudo va vous demander votre mot de passe de session. L'audit complet lit tout le système et ne modifie rien. Commande lancée :
+ui.ind.confirm.root_timer.title=Planifier l'audit complet ({freq}) ?
+ui.ind.confirm.root_timer.body=Un terminal va s'ouvrir et sudo va vous demander votre mot de passe de session, une seule fois, pour installer le minuteur du système ; la commande affiche ensuite ce qu'elle va écrire et vous demande de confirmer. Après cela, l'audit complet se lance tout seul en arrière-plan, sans jamais redemander de mot de passe. Commande lancée :
+ui.ind.confirm.root_timer_remove.title=Arrêter l'audit complet automatique ?
+ui.ind.confirm.root_timer_remove.body=Un terminal va s'ouvrir et sudo va vous demander votre mot de passe de session, pour retirer le minuteur du système. Commande lancée :
+ui.ind.term.intro=Ubuntu Health Check lance cette commande avec les droits administrateur (sudo va vous demander votre mot de passe de session) :
